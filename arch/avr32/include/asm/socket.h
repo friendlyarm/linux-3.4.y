@@ -69,4 +69,8 @@
 /* Instruct lower device to use last 4-bytes of skb data as FCS */
 #define SO_NOFCS		43
 
+#define SO_LOCK_FILTER		44
+
+#define SO_SELECT_ERR_QUEUE	45
+
 #endif /* __ASM_AVR32_SOCKET_H */
