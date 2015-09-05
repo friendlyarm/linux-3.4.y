@@ -41,6 +41,12 @@
 #include <net/cfg80211.h>
 #include <net/rtnetlink.h>
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+typedef const u8	NL_u8;
+#else
+typedef       u8	NL_u8;
+#endif
+
 #include <wlioctl.h>
 #include <wldev_common.h>
 #include <wl_cfg80211.h>
@@ -318,7 +324,7 @@ static s32 wl_cfg80211_join_ibss(struct wiphy *wiphy, struct net_device *dev,
 static s32 wl_cfg80211_leave_ibss(struct wiphy *wiphy,
 	struct net_device *dev);
 static s32 wl_cfg80211_get_station(struct wiphy *wiphy,
-	struct net_device *dev, u8 *mac,
+	struct net_device *dev, NL_u8 *mac,
 	struct station_info *sinfo);
 static s32 wl_cfg80211_set_power_mgmt(struct wiphy *wiphy,
 	struct net_device *dev, bool enabled,
@@ -361,10 +367,15 @@ static s32 wl_cfg80211_resume(struct wiphy *wiphy);
 	2, 0))
 static s32 wl_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy,
 	bcm_struct_cfgdev *cfgdev, u64 cookie);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+static s32 wl_cfg80211_del_station(struct wiphy *wiphy,
+	struct net_device *ndev, struct station_del_parameters *params);
+#else
 static s32 wl_cfg80211_del_station(struct wiphy *wiphy,
 	struct net_device *ndev, u8* mac_addr);
+#endif
 static s32 wl_cfg80211_change_station(struct wiphy *wiphy,
-	struct net_device *dev, u8 *mac, struct station_parameters *params);
+	struct net_device *dev, NL_u8 *mac, struct station_parameters *params);
 #endif /* WL_SUPPORT_BACKPORTED_KPATCHES || KERNEL_VER >= KERNEL_VERSION(3, 2, 0)) */
 static s32
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || defined(WL_COMPAT_WIRELESS)
@@ -396,7 +407,7 @@ static s32 wl_cfg80211_tdls_mgmt(struct wiphy *wiphy, struct net_device *dev,
 	size_t len);
 #endif /* CONFIG_ARCH_MSM && TDLS_MGMT_VERSION2 */
 static s32 wl_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, enum nl80211_tdls_operation oper);
+	NL_u8 *peer, enum nl80211_tdls_operation oper);
 #endif /* LINUX_VERSION > KERNEL_VERSION(3,2,0) || WL_COMPAT_WIRELESS */
 #ifdef WL_SCHED_SCAN
 static int wl_cfg80211_sched_scan_stop(struct wiphy *wiphy, struct net_device *dev);
@@ -1364,6 +1375,9 @@ wl_cfg80211_add_virtual_iface(struct wiphy *wiphy,
 #else
 	char *name,
 #endif /* WL_CFG80211_P2P_DEV_IF */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+	unsigned char name_assign_type,
+#endif
 	enum nl80211_iftype type, u32 *flags,
 	struct vif_params *params)
 {
@@ -5058,7 +5072,7 @@ wl_cfg80211_get_key(struct wiphy *wiphy, struct net_device *dev,
 	swap_key_to_BE(&key);
 	memset(&params, 0, sizeof(params));
 	params.key_len = (u8) min_t(u8, DOT11_MAX_KEY_SIZE, key.len);
-	memcpy(params.key, key.data, params.key_len);
+	memcpy((void *)params.key, key.data, params.key_len);
 
 	err = wldev_iovar_getint_bsscfg(dev, "wsec", &wsec, bssidx);
 	if (unlikely(err)) {
@@ -5132,7 +5146,7 @@ wl_cfg80211_config_default_mgmt_key(struct wiphy *wiphy,
 
 static s32
 wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
-	u8 *mac, struct station_info *sinfo)
+	NL_u8 *mac, struct station_info *sinfo)
 {
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
 	scb_val_t scb_val;
@@ -5153,7 +5167,11 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 			WL_ERR(("GET STA INFO failed, %d\n", err));
 			return err;
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+		sinfo->filled = BIT(NL80211_STA_INFO_INACTIVE_TIME);
+#else
 		sinfo->filled = STATION_INFO_INACTIVE_TIME;
+#endif
 		sta = (sta_info_t *)cfg->ioctl_buf;
 		sta->len = dtoh16(sta->len);
 		sta->cap = dtoh16(sta->cap);
@@ -5163,7 +5181,11 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 		sinfo->inactive_time = sta->idle * 1000;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)) || defined(WL_COMPAT_WIRELESS)
 		if (sta->flags & WL_STA_ASSOC) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+			sinfo->filled |= BIT(NL80211_STA_INFO_CONNECTED_TIME);
+#else
 			sinfo->filled |= STATION_INFO_CONNECTED_TIME;
+#endif
 			sinfo->connected_time = sta->in;
 		}
 		WL_INFORM(("STA %s : idle time : %d sec, connected time :%d ms\n",
@@ -5214,7 +5236,11 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 			int rxpktglom;
 #endif
 			rate = dtoh32(rate);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+			sinfo->filled |= BIT(NL80211_STA_INFO_TX_BITRATE);
+#else
 			sinfo->filled |= STATION_INFO_TX_BITRATE;
+#endif
 			sinfo->txrate.legacy = rate * 5;
 			WL_DBG(("Rate %d Mbps\n", (rate / 2)));
 #if defined(USE_DYNAMIC_MAXPKT_RXGLOM)
@@ -5259,16 +5285,27 @@ wl_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 		// terence 20150419: limit the max. rssi to -2 or the bss will be filtered out in android OS
 		rssi = MIN(rssi, RSSI_MAXVAL);
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+		sinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL);
+#else
 		sinfo->filled |= STATION_INFO_SIGNAL;
+#endif
 		sinfo->signal = rssi;
 		WL_DBG(("RSSI %d dBm\n", rssi));
 		err = wldev_ioctl(dev, WLC_GET_PKTCNTS, &pktcnt,
 			sizeof(pktcnt), false);
 		if (!err) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+			sinfo->filled |= (BIT(NL80211_STA_INFO_RX_PACKETS) |
+				BIT(NL80211_STA_INFO_RX_DROP_MISC) |
+				BIT(NL80211_STA_INFO_TX_PACKETS) |
+				BIT(NL80211_STA_INFO_TX_FAILED));
+#else
 			sinfo->filled |= (STATION_INFO_RX_PACKETS |
 				STATION_INFO_RX_DROP_MISC |
 				STATION_INFO_TX_PACKETS |
 				STATION_INFO_TX_FAILED);
+#endif
 			sinfo->rx_packets = pktcnt.rx_good_pkt;
 			sinfo->rx_dropped_misc = pktcnt.rx_bad_pkt;
 			sinfo->tx_packets = pktcnt.tx_good_pkt;
@@ -7843,10 +7880,18 @@ static s32
 wl_cfg80211_del_station(
 	struct wiphy *wiphy,
 	struct net_device *ndev,
-	u8* mac_addr)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+	struct station_del_parameters *params
+#else
+	u8* mac_addr
+#endif
+	)
 {
 	struct net_device *dev;
 	struct bcm_cfg80211 *cfg = wiphy_priv(wiphy);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+	const u8 *mac_addr = params->mac;
+#endif
 	scb_val_t scb_val;
 	s8 eabuf[ETHER_ADDR_STR_LEN];
 	int err;
@@ -7901,7 +7946,7 @@ static s32
 wl_cfg80211_change_station(
 	struct wiphy *wiphy,
 	struct net_device *dev,
-	u8 *mac,
+	NL_u8 *mac,
 	struct station_parameters *params)
 {
 	int err;
@@ -9407,7 +9452,9 @@ exit:
 	sinfo.filled = 0;
 	if (((event == WLC_E_ASSOC_IND) || (event == WLC_E_REASSOC_IND)) &&
 		reason == DOT11_SC_SUCCESS) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0)
 		sinfo.filled = STATION_INFO_ASSOC_REQ_IES;
+#endif
 		if (!data) {
 			WL_ERR(("No IEs present in ASSOC/REASSOC_IND"));
 			return -EINVAL;
@@ -14363,7 +14410,7 @@ out:
 
 static s32
 wl_cfg80211_tdls_oper(struct wiphy *wiphy, struct net_device *dev,
-	u8 *peer, enum nl80211_tdls_operation oper)
+	NL_u8 *peer, enum nl80211_tdls_operation oper)
 {
 	s32 ret = 0;
 #ifdef WLTDLS
