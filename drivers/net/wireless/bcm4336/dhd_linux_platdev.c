@@ -487,8 +487,8 @@ void wifi_ctrlfunc_unregister_drv(void)
 		adapter = &dhd_wifi_platdata->adapters[0];
 		if (is_power_on) {
 			wifi_platform_set_power(adapter, FALSE, WIFI_TURNOFF_DELAY);
+			wifi_platform_bus_enumerate(adapter, FALSE);
 		}
-		wifi_platform_bus_enumerate(adapter, FALSE);
 	}
 #endif /* !defined(CONFIG_DTS) */
 
@@ -739,13 +739,12 @@ static int dhd_wifi_platform_load_sdio(void)
 			dhd_bus_unreg_sdio_notify();
 			wifi_platform_set_power(adapter, FALSE, WIFI_TURNOFF_DELAY);
 			wifi_platform_bus_enumerate(adapter, FALSE);
-		} while (retry--);
+		} while (--retry);
 
 		if (!chip_up) {
 			DHD_ERROR(("failed to power up %s, max retry reached**\n", adapter->name));
 			return -ENODEV;
 		}
-
 	}
 
 	err = dhd_bus_register();
@@ -754,7 +753,6 @@ static int dhd_wifi_platform_load_sdio(void)
 		DHD_ERROR(("%s: sdio_register_driver failed\n", __FUNCTION__));
 		goto fail;
 	}
-
 
 	/*
 	 * Wait till MMC sdio_register_driver callback called and made driver attach.

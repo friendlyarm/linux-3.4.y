@@ -40,6 +40,8 @@
 #include <asm/uaccess.h>
 #include <asm/unaligned.h>
 
+#include "ap621x.h"
+
 #include <epivers.h>
 #include <bcmutils.h>
 #include <bcmendian.h>
@@ -7618,6 +7620,8 @@ dhd_module_init(void)
 	int retry = POWERUP_MAX_RETRY;
 
 	printf("%s: in\n", __FUNCTION__);
+
+	ap621x_wifi_init();
 
 	DHD_PERIM_RADIO_INIT();
 

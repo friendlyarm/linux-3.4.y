@@ -29,30 +29,37 @@ config BCMDHD_WEXT
 choice
 	prompt "Enable Chip Interface"
 	depends on BCMDHD
+	default BCMDHD_SDIO
 	---help---
-		Enable Chip Interface.
+	  Enable Chip Interface.
+
 config BCMDHD_SDIO
-		bool "SDIO bus interface support"
-		depends on BCMDHD && MMC
+	bool "SDIO bus interface support"
+	depends on BCMDHD && MMC
+
 config BCMDHD_PCIE
-		bool "PCIe bus interface support"
-		depends on BCMDHD && PCI
+	bool "PCIe bus interface support"
+	depends on BCMDHD && PCI
+
 endchoice
 
 choice
 	depends on BCMDHD && BCMDHD_SDIO
 	prompt "Interrupt type"
+	default BCMDHD_OOB
 	---help---
-		Interrupt type
+	  Interrupt type
+
 config BCMDHD_OOB
 	depends on BCMDHD && BCMDHD_SDIO
 	bool "Out-of-Band Interrupt"
-	default y
 	---help---
-		Interrupt from WL_HOST_WAKE.
+	  Interrupt from WL_HOST_WAKE.
+
 config BCMDHD_SDIO_IRQ
 	depends on BCMDHD && BCMDHD_SDIO
 	bool "In-Band Interrupt"
 	---help---
 	  Interrupt from SDIO DAT[1]
+
 endchoice
