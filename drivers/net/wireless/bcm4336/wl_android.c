@@ -8,6 +8,7 @@
 
 #include <linux/module.h>
 #include <linux/netdevice.h>
+#include <linux/string.h>
 #include <net/netlink.h>
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
@@ -2505,11 +2506,11 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 
 	ANDROID_INFO(("%s: Android private cmd \"%s\" on %s\n", __FUNCTION__, command, ifr->ifr_name));
 
-	if (strnicmp(command, CMD_START, strlen(CMD_START)) == 0) {
+	if (strncasecmp(command, CMD_START, strlen(CMD_START)) == 0) {
 		ANDROID_INFO(("%s, Received regular START command\n", __FUNCTION__));
 		bytes_written = wl_android_wifi_on(net);
 	}
-	else if (strnicmp(command, CMD_SETFWPATH, strlen(CMD_SETFWPATH)) == 0) {
+	else if (strncasecmp(command, CMD_SETFWPATH, strlen(CMD_SETFWPATH)) == 0) {
 		bytes_written = wl_android_set_fwpath(net, command, priv_cmd.total_len);
 	}
 
@@ -2520,53 +2521,53 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		goto exit;
 	}
 
-	if (strnicmp(command, CMD_STOP, strlen(CMD_STOP)) == 0) {
+	if (strncasecmp(command, CMD_STOP, strlen(CMD_STOP)) == 0) {
 		bytes_written = wl_android_wifi_off(net);
 	}
-	else if (strnicmp(command, CMD_SCAN_ACTIVE, strlen(CMD_SCAN_ACTIVE)) == 0) {
+	else if (strncasecmp(command, CMD_SCAN_ACTIVE, strlen(CMD_SCAN_ACTIVE)) == 0) {
 		/* TBD: SCAN-ACTIVE */
 	}
-	else if (strnicmp(command, CMD_SCAN_PASSIVE, strlen(CMD_SCAN_PASSIVE)) == 0) {
+	else if (strncasecmp(command, CMD_SCAN_PASSIVE, strlen(CMD_SCAN_PASSIVE)) == 0) {
 		/* TBD: SCAN-PASSIVE */
 	}
-	else if (strnicmp(command, CMD_RSSI, strlen(CMD_RSSI)) == 0) {
+	else if (strncasecmp(command, CMD_RSSI, strlen(CMD_RSSI)) == 0) {
 		bytes_written = wl_android_get_rssi(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_LINKSPEED, strlen(CMD_LINKSPEED)) == 0) {
+	else if (strncasecmp(command, CMD_LINKSPEED, strlen(CMD_LINKSPEED)) == 0) {
 		bytes_written = wl_android_get_link_speed(net, command, priv_cmd.total_len);
 	}
 #ifdef PKT_FILTER_SUPPORT
-	else if (strnicmp(command, CMD_RXFILTER_START, strlen(CMD_RXFILTER_START)) == 0) {
+	else if (strncasecmp(command, CMD_RXFILTER_START, strlen(CMD_RXFILTER_START)) == 0) {
 		bytes_written = net_os_enable_packet_filter(net, 1);
 	}
-	else if (strnicmp(command, CMD_RXFILTER_STOP, strlen(CMD_RXFILTER_STOP)) == 0) {
+	else if (strncasecmp(command, CMD_RXFILTER_STOP, strlen(CMD_RXFILTER_STOP)) == 0) {
 		bytes_written = net_os_enable_packet_filter(net, 0);
 	}
-	else if (strnicmp(command, CMD_RXFILTER_ADD, strlen(CMD_RXFILTER_ADD)) == 0) {
+	else if (strncasecmp(command, CMD_RXFILTER_ADD, strlen(CMD_RXFILTER_ADD)) == 0) {
 		int filter_num = *(command + strlen(CMD_RXFILTER_ADD) + 1) - '0';
 		bytes_written = net_os_rxfilter_add_remove(net, TRUE, filter_num);
 	}
-	else if (strnicmp(command, CMD_RXFILTER_REMOVE, strlen(CMD_RXFILTER_REMOVE)) == 0) {
+	else if (strncasecmp(command, CMD_RXFILTER_REMOVE, strlen(CMD_RXFILTER_REMOVE)) == 0) {
 		int filter_num = *(command + strlen(CMD_RXFILTER_REMOVE) + 1) - '0';
 		bytes_written = net_os_rxfilter_add_remove(net, FALSE, filter_num);
 	}
 #if defined(CUSTOM_PLATFORM_NV_TEGRA)
-	else if (strnicmp(command, CMD_PKT_FILTER_MODE, strlen(CMD_PKT_FILTER_MODE)) == 0) {
+	else if (strncasecmp(command, CMD_PKT_FILTER_MODE, strlen(CMD_PKT_FILTER_MODE)) == 0) {
 		dhd_set_packet_filter_mode(net, &command[strlen(CMD_PKT_FILTER_MODE) + 1]);
-	} else if (strnicmp(command, CMD_PKT_FILTER_PORTS, strlen(CMD_PKT_FILTER_PORTS)) == 0) {
+	} else if (strncasecmp(command, CMD_PKT_FILTER_PORTS, strlen(CMD_PKT_FILTER_PORTS)) == 0) {
 		bytes_written = dhd_set_packet_filter_ports(net,
 			&command[strlen(CMD_PKT_FILTER_PORTS) + 1]);
 		ret = bytes_written;
 	}
 #endif /* defined(CUSTOM_PLATFORM_NV_TEGRA) */
 #endif /* PKT_FILTER_SUPPORT */
-	else if (strnicmp(command, CMD_BTCOEXSCAN_START, strlen(CMD_BTCOEXSCAN_START)) == 0) {
+	else if (strncasecmp(command, CMD_BTCOEXSCAN_START, strlen(CMD_BTCOEXSCAN_START)) == 0) {
 		/* TBD: BTCOEXSCAN-START */
 	}
-	else if (strnicmp(command, CMD_BTCOEXSCAN_STOP, strlen(CMD_BTCOEXSCAN_STOP)) == 0) {
+	else if (strncasecmp(command, CMD_BTCOEXSCAN_STOP, strlen(CMD_BTCOEXSCAN_STOP)) == 0) {
 		/* TBD: BTCOEXSCAN-STOP */
 	}
-	else if (strnicmp(command, CMD_BTCOEXMODE, strlen(CMD_BTCOEXMODE)) == 0) {
+	else if (strncasecmp(command, CMD_BTCOEXMODE, strlen(CMD_BTCOEXMODE)) == 0) {
 #ifdef WL_CFG80211
 		void *dhdp = wl_cfg80211_get_dhdp();
 		bytes_written = wl_cfg80211_set_btcoex_dhcp(net, dhdp, command);
@@ -2581,13 +2582,13 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 #endif /* PKT_FILTER_SUPPORT */
 #endif /* WL_CFG80211 */
 	}
-	else if (strnicmp(command, CMD_SETSUSPENDOPT, strlen(CMD_SETSUSPENDOPT)) == 0) {
+	else if (strncasecmp(command, CMD_SETSUSPENDOPT, strlen(CMD_SETSUSPENDOPT)) == 0) {
 		bytes_written = wl_android_set_suspendopt(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_SETSUSPENDMODE, strlen(CMD_SETSUSPENDMODE)) == 0) {
+	else if (strncasecmp(command, CMD_SETSUSPENDMODE, strlen(CMD_SETSUSPENDMODE)) == 0) {
 		bytes_written = wl_android_set_suspendmode(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_SETBAND, strlen(CMD_SETBAND)) == 0) {
+	else if (strncasecmp(command, CMD_SETBAND, strlen(CMD_SETBAND)) == 0) {
 		uint band = *(command + strlen(CMD_SETBAND) + 1) - '0';
 #ifdef WL_HOST_BAND_MGMT
 		s32 ret = 0;
@@ -2607,12 +2608,12 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 		bytes_written = wldev_set_band(net, band);
 #endif /* WL_HOST_BAND_MGMT */
 	}
-	else if (strnicmp(command, CMD_GETBAND, strlen(CMD_GETBAND)) == 0) {
+	else if (strncasecmp(command, CMD_GETBAND, strlen(CMD_GETBAND)) == 0) {
 		bytes_written = wl_android_get_band(net, command, priv_cmd.total_len);
 	}
 #ifdef WL_CFG80211
 	/* CUSTOMER_SET_COUNTRY feature is define for only GGSM model */
-	else if (strnicmp(command, CMD_COUNTRY, strlen(CMD_COUNTRY)) == 0) {
+	else if (strncasecmp(command, CMD_COUNTRY, strlen(CMD_COUNTRY)) == 0) {
 		char *country_code = command + strlen(CMD_COUNTRY) + 1;
 #ifdef CUSTOMER_HW5
 		/* Customer_hw5 want to keep connections */
@@ -2625,32 +2626,32 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 
 
 #ifdef PNO_SUPPORT
-	else if (strnicmp(command, CMD_PNOSSIDCLR_SET, strlen(CMD_PNOSSIDCLR_SET)) == 0) {
+	else if (strncasecmp(command, CMD_PNOSSIDCLR_SET, strlen(CMD_PNOSSIDCLR_SET)) == 0) {
 		bytes_written = dhd_dev_pno_stop_for_ssid(net);
 	}
 #ifndef WL_SCHED_SCAN
-	else if (strnicmp(command, CMD_PNOSETUP_SET, strlen(CMD_PNOSETUP_SET)) == 0) {
+	else if (strncasecmp(command, CMD_PNOSETUP_SET, strlen(CMD_PNOSETUP_SET)) == 0) {
 		bytes_written = wl_android_set_pno_setup(net, command, priv_cmd.total_len);
 	}
 #endif /* !WL_SCHED_SCAN */
-	else if (strnicmp(command, CMD_PNOENABLE_SET, strlen(CMD_PNOENABLE_SET)) == 0) {
+	else if (strncasecmp(command, CMD_PNOENABLE_SET, strlen(CMD_PNOENABLE_SET)) == 0) {
 		int enable = *(command + strlen(CMD_PNOENABLE_SET) + 1) - '0';
 		bytes_written = (enable)? 0 : dhd_dev_pno_stop_for_ssid(net);
 	}
-	else if (strnicmp(command, CMD_WLS_BATCHING, strlen(CMD_WLS_BATCHING)) == 0) {
+	else if (strncasecmp(command, CMD_WLS_BATCHING, strlen(CMD_WLS_BATCHING)) == 0) {
 		bytes_written = wls_parse_batching_cmd(net, command, priv_cmd.total_len);
 	}
 #endif /* PNO_SUPPORT */
-	else if (strnicmp(command, CMD_P2P_DEV_ADDR, strlen(CMD_P2P_DEV_ADDR)) == 0) {
+	else if (strncasecmp(command, CMD_P2P_DEV_ADDR, strlen(CMD_P2P_DEV_ADDR)) == 0) {
 		bytes_written = wl_android_get_p2p_dev_addr(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_P2P_SET_NOA, strlen(CMD_P2P_SET_NOA)) == 0) {
+	else if (strncasecmp(command, CMD_P2P_SET_NOA, strlen(CMD_P2P_SET_NOA)) == 0) {
 		int skip = strlen(CMD_P2P_SET_NOA) + 1;
 		bytes_written = wl_cfg80211_set_p2p_noa(net, command + skip,
 			priv_cmd.total_len - skip);
 	}
 #ifdef WL_SDO
-	else if (strnicmp(command, CMD_P2P_SD_OFFLOAD, strlen(CMD_P2P_SD_OFFLOAD)) == 0) {
+	else if (strncasecmp(command, CMD_P2P_SD_OFFLOAD, strlen(CMD_P2P_SD_OFFLOAD)) == 0) {
 		u8 *buf = command;
 		u8 *cmd_id = NULL;
 		int len;
@@ -2666,158 +2667,158 @@ int wl_android_priv_cmd(struct net_device *net, struct ifreq *ifr, int cmd)
 	}
 #endif /* WL_SDO */
 #ifdef WL_NAN
-	else if (strnicmp(command, CMD_NAN, strlen(CMD_NAN)) == 0) {
+	else if (strncasecmp(command, CMD_NAN, strlen(CMD_NAN)) == 0) {
 		bytes_written = wl_cfg80211_nan_cmd_handler(net, command,
 			priv_cmd.total_len);
 	}
 #endif /* WL_NAN */
 #if !defined WL_ENABLE_P2P_IF
-	else if (strnicmp(command, CMD_P2P_GET_NOA, strlen(CMD_P2P_GET_NOA)) == 0) {
+	else if (strncasecmp(command, CMD_P2P_GET_NOA, strlen(CMD_P2P_GET_NOA)) == 0) {
 		bytes_written = wl_cfg80211_get_p2p_noa(net, command, priv_cmd.total_len);
 	}
 #endif /* WL_ENABLE_P2P_IF */
-	else if (strnicmp(command, CMD_P2P_SET_PS, strlen(CMD_P2P_SET_PS)) == 0) {
+	else if (strncasecmp(command, CMD_P2P_SET_PS, strlen(CMD_P2P_SET_PS)) == 0) {
 		int skip = strlen(CMD_P2P_SET_PS) + 1;
 		bytes_written = wl_cfg80211_set_p2p_ps(net, command + skip,
 			priv_cmd.total_len - skip);
 	}
 #ifdef WL_CFG80211
-	else if (strnicmp(command, CMD_SET_AP_WPS_P2P_IE,
+	else if (strncasecmp(command, CMD_SET_AP_WPS_P2P_IE,
 		strlen(CMD_SET_AP_WPS_P2P_IE)) == 0) {
 		int skip = strlen(CMD_SET_AP_WPS_P2P_IE) + 3;
 		bytes_written = wl_cfg80211_set_wps_p2p_ie(net, command + skip,
 			priv_cmd.total_len - skip, *(command + skip - 2) - '0');
 	}
 #ifdef WLFBT
-	else if (strnicmp(command, CMD_GET_FTKEY, strlen(CMD_GET_FTKEY)) == 0) {
+	else if (strncasecmp(command, CMD_GET_FTKEY, strlen(CMD_GET_FTKEY)) == 0) {
 		wl_cfg80211_get_fbt_key(command);
 		bytes_written = FBT_KEYLEN;
 	}
 #endif /* WLFBT */
 #endif /* WL_CFG80211 */
-	else if (strnicmp(command, CMD_OKC_SET_PMK, strlen(CMD_OKC_SET_PMK)) == 0)
+	else if (strncasecmp(command, CMD_OKC_SET_PMK, strlen(CMD_OKC_SET_PMK)) == 0)
 		bytes_written = wl_android_set_pmk(net, command, priv_cmd.total_len);
-	else if (strnicmp(command, CMD_OKC_ENABLE, strlen(CMD_OKC_ENABLE)) == 0)
+	else if (strncasecmp(command, CMD_OKC_ENABLE, strlen(CMD_OKC_ENABLE)) == 0)
 		bytes_written = wl_android_okc_enable(net, command, priv_cmd.total_len);
 #ifdef BCMCCX
-	else if (strnicmp(command, CMD_GETCCKM_RN, strlen(CMD_GETCCKM_RN)) == 0) {
+	else if (strncasecmp(command, CMD_GETCCKM_RN, strlen(CMD_GETCCKM_RN)) == 0) {
 		bytes_written = wl_android_get_cckm_rn(net, command);
 	}
-	else if (strnicmp(command, CMD_SETCCKM_KRK, strlen(CMD_SETCCKM_KRK)) == 0) {
+	else if (strncasecmp(command, CMD_SETCCKM_KRK, strlen(CMD_SETCCKM_KRK)) == 0) {
 		bytes_written = wl_android_set_cckm_krk(net, command);
 	}
-	else if (strnicmp(command, CMD_GET_ASSOC_RES_IES, strlen(CMD_GET_ASSOC_RES_IES)) == 0) {
+	else if (strncasecmp(command, CMD_GET_ASSOC_RES_IES, strlen(CMD_GET_ASSOC_RES_IES)) == 0) {
 		bytes_written = wl_android_get_assoc_res_ies(net, command);
 	}
 #endif /* BCMCCX */
 #if defined(WL_SUPPORT_AUTO_CHANNEL)
-	else if (strnicmp(command, CMD_GET_BEST_CHANNELS,
+	else if (strncasecmp(command, CMD_GET_BEST_CHANNELS,
 		strlen(CMD_GET_BEST_CHANNELS)) == 0) {
 		bytes_written = wl_cfg80211_get_best_channels(net, command,
 			priv_cmd.total_len);
 	}
 #endif /* WL_SUPPORT_AUTO_CHANNEL */
-	else if (strnicmp(command, CMD_HAPD_MAC_FILTER, strlen(CMD_HAPD_MAC_FILTER)) == 0) {
+	else if (strncasecmp(command, CMD_HAPD_MAC_FILTER, strlen(CMD_HAPD_MAC_FILTER)) == 0) {
 		int skip = strlen(CMD_HAPD_MAC_FILTER) + 1;
 		wl_android_set_mac_address_filter(net, (const char*)command+skip);
 	}
-	else if (strnicmp(command, CMD_SETROAMMODE, strlen(CMD_SETROAMMODE)) == 0)
+	else if (strncasecmp(command, CMD_SETROAMMODE, strlen(CMD_SETROAMMODE)) == 0)
 		bytes_written = wl_android_set_roam_mode(net, command, priv_cmd.total_len);
 #if defined(BCMFW_ROAM_ENABLE)
-	else if (strnicmp(command, CMD_SET_ROAMPREF, strlen(CMD_SET_ROAMPREF)) == 0) {
+	else if (strncasecmp(command, CMD_SET_ROAMPREF, strlen(CMD_SET_ROAMPREF)) == 0) {
 		bytes_written = wl_android_set_roampref(net, command, priv_cmd.total_len);
 	}
 #endif /* BCMFW_ROAM_ENABLE */
 #ifdef WL_CFG80211
-	else if (strnicmp(command, CMD_MIRACAST, strlen(CMD_MIRACAST)) == 0)
+	else if (strncasecmp(command, CMD_MIRACAST, strlen(CMD_MIRACAST)) == 0)
 		bytes_written = wl_android_set_miracast(net, command, priv_cmd.total_len);
 #if defined(CUSTOM_PLATFORM_NV_TEGRA)
-	else if (strnicmp(command, CMD_SETMIRACAST, strlen(CMD_SETMIRACAST)) == 0)
+	else if (strncasecmp(command, CMD_SETMIRACAST, strlen(CMD_SETMIRACAST)) == 0)
 		bytes_written = wldev_miracast_tuning(net, command, priv_cmd.total_len);
-	else if (strnicmp(command, CMD_ASSOCRESPIE, strlen(CMD_ASSOCRESPIE)) == 0)
+	else if (strncasecmp(command, CMD_ASSOCRESPIE, strlen(CMD_ASSOCRESPIE)) == 0)
 		bytes_written = wldev_get_assoc_resp_ie(net, command, priv_cmd.total_len);
-	else if (strnicmp(command, CMD_RXRATESTATS, strlen(CMD_RXRATESTATS)) == 0)
+	else if (strncasecmp(command, CMD_RXRATESTATS, strlen(CMD_RXRATESTATS)) == 0)
 		bytes_written = wldev_get_rx_rate_stats(net, command, priv_cmd.total_len);
 #endif /* defined(CUSTOM_PLATFORM_NV_TEGRA) */
-	else if (strnicmp(command, CMD_SETIBSSBEACONOUIDATA, strlen(CMD_SETIBSSBEACONOUIDATA)) == 0)
+	else if (strncasecmp(command, CMD_SETIBSSBEACONOUIDATA, strlen(CMD_SETIBSSBEACONOUIDATA)) == 0)
 		bytes_written = wl_android_set_ibss_beacon_ouidata(net,
 		command, priv_cmd.total_len);
 #endif
 #ifdef WLAIBSS
-	else if (strnicmp(command, CMD_SETIBSSTXFAILEVENT,
+	else if (strncasecmp(command, CMD_SETIBSSTXFAILEVENT,
 		strlen(CMD_SETIBSSTXFAILEVENT)) == 0)
 		bytes_written = wl_android_set_ibss_txfail_event(net, command, priv_cmd.total_len);
-	else if (strnicmp(command, CMD_GET_IBSS_PEER_INFO_ALL,
+	else if (strncasecmp(command, CMD_GET_IBSS_PEER_INFO_ALL,
 		strlen(CMD_GET_IBSS_PEER_INFO_ALL)) == 0)
 		bytes_written = wl_android_get_ibss_peer_info(net, command, priv_cmd.total_len,
 			TRUE);
-	else if (strnicmp(command, CMD_GET_IBSS_PEER_INFO,
+	else if (strncasecmp(command, CMD_GET_IBSS_PEER_INFO,
 		strlen(CMD_GET_IBSS_PEER_INFO)) == 0)
 		bytes_written = wl_android_get_ibss_peer_info(net, command, priv_cmd.total_len,
 			FALSE);
-	else if (strnicmp(command, CMD_SETIBSSROUTETABLE,
+	else if (strncasecmp(command, CMD_SETIBSSROUTETABLE,
 		strlen(CMD_SETIBSSROUTETABLE)) == 0)
 		bytes_written = wl_android_set_ibss_routetable(net, command,
 			priv_cmd.total_len);
-	else if (strnicmp(command, CMD_SETIBSSAMPDU, strlen(CMD_SETIBSSAMPDU)) == 0)
+	else if (strncasecmp(command, CMD_SETIBSSAMPDU, strlen(CMD_SETIBSSAMPDU)) == 0)
 		bytes_written = wl_android_set_ibss_ampdu(net, command, priv_cmd.total_len);
-	else if (strnicmp(command, CMD_SETIBSSANTENNAMODE, strlen(CMD_SETIBSSANTENNAMODE)) == 0)
+	else if (strncasecmp(command, CMD_SETIBSSANTENNAMODE, strlen(CMD_SETIBSSANTENNAMODE)) == 0)
 		bytes_written = wl_android_set_ibss_antenna(net, command, priv_cmd.total_len);
 #endif /* WLAIBSS */
-	else if (strnicmp(command, CMD_KEEP_ALIVE, strlen(CMD_KEEP_ALIVE)) == 0) {
+	else if (strncasecmp(command, CMD_KEEP_ALIVE, strlen(CMD_KEEP_ALIVE)) == 0) {
 		int skip = strlen(CMD_KEEP_ALIVE) + 1;
 		bytes_written = wl_keep_alive_set(net, command + skip, priv_cmd.total_len - skip);
 	}
 #ifdef WL_CFG80211
-	else if (strnicmp(command, CMD_ROAM_OFFLOAD, strlen(CMD_ROAM_OFFLOAD)) == 0) {
+	else if (strncasecmp(command, CMD_ROAM_OFFLOAD, strlen(CMD_ROAM_OFFLOAD)) == 0) {
 		int enable = *(command + strlen(CMD_ROAM_OFFLOAD) + 1) - '0';
 		bytes_written = wl_cfg80211_enable_roam_offload(net, enable);
 	}
-	else if (strnicmp(command, CMD_ROAM_OFFLOAD_APLIST, strlen(CMD_ROAM_OFFLOAD_APLIST)) == 0) {
+	else if (strncasecmp(command, CMD_ROAM_OFFLOAD_APLIST, strlen(CMD_ROAM_OFFLOAD_APLIST)) == 0) {
 		bytes_written = wl_android_set_roam_offload_bssid_list(net,
 			command + strlen(CMD_ROAM_OFFLOAD_APLIST) + 1);
 	}
 #endif
 #ifdef P2PRESP_WFDIE_SRC
-	else if (strnicmp(command, CMD_P2P_SET_WFDIE_RESP,
+	else if (strncasecmp(command, CMD_P2P_SET_WFDIE_RESP,
 		strlen(CMD_P2P_SET_WFDIE_RESP)) == 0) {
 		int mode = *(command + strlen(CMD_P2P_SET_WFDIE_RESP) + 1) - '0';
 		bytes_written = wl_android_set_wfdie_resp(net, mode);
-	} else if (strnicmp(command, CMD_P2P_GET_WFDIE_RESP,
+	} else if (strncasecmp(command, CMD_P2P_GET_WFDIE_RESP,
 		strlen(CMD_P2P_GET_WFDIE_RESP)) == 0) {
 		bytes_written = wl_android_get_wfdie_resp(net, command, priv_cmd.total_len);
 	}
 #endif /* P2PRESP_WFDIE_SRC */
-	else if (strnicmp(command, CMD_GET_LINK_STATUS, strlen(CMD_GET_LINK_STATUS)) == 0) {
+	else if (strncasecmp(command, CMD_GET_LINK_STATUS, strlen(CMD_GET_LINK_STATUS)) == 0) {
 		bytes_written = wl_android_get_link_status(net, command, priv_cmd.total_len);
 	}
 #ifdef CONNECTION_STATISTICS
-	else if (strnicmp(command, CMD_GET_CONNECTION_STATS,
+	else if (strncasecmp(command, CMD_GET_CONNECTION_STATS,
 		strlen(CMD_GET_CONNECTION_STATS)) == 0) {
 		bytes_written = wl_android_get_connection_stats(net, command,
 			priv_cmd.total_len);
 	}
 #endif
-	else if(strnicmp(command, CMD_GET_CHANNEL, strlen(CMD_GET_CHANNEL)) == 0) {
+	else if(strncasecmp(command, CMD_GET_CHANNEL, strlen(CMD_GET_CHANNEL)) == 0) {
 		bytes_written = wl_android_get_channel(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_SET_ROAM, strlen(CMD_SET_ROAM)) == 0) {
+	else if (strncasecmp(command, CMD_SET_ROAM, strlen(CMD_SET_ROAM)) == 0) {
 		bytes_written = wl_android_set_roam_trigger(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_GET_ROAM, strlen(CMD_GET_ROAM)) == 0) {
+	else if (strncasecmp(command, CMD_GET_ROAM, strlen(CMD_GET_ROAM)) == 0) {
 		bytes_written = wl_android_get_roam_trigger(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_GET_KEEP_ALIVE, strlen(CMD_GET_KEEP_ALIVE)) == 0) {
+	else if (strncasecmp(command, CMD_GET_KEEP_ALIVE, strlen(CMD_GET_KEEP_ALIVE)) == 0) {
 		int skip = strlen(CMD_GET_KEEP_ALIVE) + 1;
 		bytes_written = wl_android_get_keep_alive(net, command+skip, priv_cmd.total_len-skip);
 	}
-	else if (strnicmp(command, CMD_GET_PM, strlen(CMD_GET_PM)) == 0) {
+	else if (strncasecmp(command, CMD_GET_PM, strlen(CMD_GET_PM)) == 0) {
 		bytes_written = wl_android_get_pm(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_SET_PM, strlen(CMD_SET_PM)) == 0) {
+	else if (strncasecmp(command, CMD_SET_PM, strlen(CMD_SET_PM)) == 0) {
 		bytes_written = wl_android_set_pm(net, command, priv_cmd.total_len);
 	}
-	else if (strnicmp(command, CMD_MONITOR, strlen(CMD_MONITOR)) == 0) {
+	else if (strncasecmp(command, CMD_MONITOR, strlen(CMD_MONITOR)) == 0) {
 		bytes_written = wl_android_set_monitor(net, command, priv_cmd.total_len);
 	} else {
 		ANDROID_ERROR(("Unknown PRIVATE command %s - ignored\n", command));
