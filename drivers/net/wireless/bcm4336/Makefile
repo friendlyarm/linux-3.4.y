@@ -13,7 +13,7 @@ DHDCFLAGS = -Wall -Wstrict-prototypes -Dlinux -DBCMDRIVER -DSDTEST       \
 	-DDHD_DONOT_FORWARD_BCMEVENT_AS_NETWORK_PKT -DRXFRAME_THREAD          \
 	-DSET_RANDOM_MAC_SOFTAP                                               \
 	-DENABLE_INSMOD_NO_FW_LOAD                                            \
-	-Idrivers/net/wireless/bcmdhd -Idrivers/net/wireless/bcmdhd/include
+	-Idrivers/net/wireless/bcm4336 -Idrivers/net/wireless/bcm4336/include
 
 DHDOFILES = aiutils.o siutils.o sbutils.o bcmutils.o bcmwifi_channels.o \
 	dhd_linux.o dhd_linux_platdev.o dhd_linux_sched.o dhd_pno.o \
@@ -52,11 +52,20 @@ endif
 obj-$(CONFIG_BCMDHD) += bcmdhd.o
 bcmdhd-objs += $(DHDOFILES)
 
-#ifeq ($(CONFIG_MACH_ODROID_4210),y)
+ifeq ($(CONFIG_MACH_MINI2451),y)
 DHDOFILES += dhd_gpio.o
 DHDCFLAGS += -DCUSTOMER_HW -DDHD_OF_SUPPORT
 #DHDCFLAGS += -DBCMWAPI_WPI -DBCMWAPI_WAI
-#endif
+DHDCFLAGS += -DPOWERUP_MAX_RETRY=1 -DPOWERUP_WAIT_MS=1200
+endif
+
+ifeq ($(CONFIG_ARCH_S5P4418),y)
+DHDOFILES += dhd_gpio.o
+DHDCFLAGS += -DCUSTOMER_HW -DDHD_OF_SUPPORT
+#DHDCFLAGS += -DBCMWAPI_WPI -DBCMWAPI_WAI
+DHDCFLAGS += -DPOWERUP_MAX_RETRY=1 -DPOWERUP_WAIT_MS=1200
+DHDCFLAGS += -DPOWER_OFF_IN_SUSPEND
+endif
 
 ifeq ($(CONFIG_BCMDHD_AG),y)
 DHDCFLAGS += -DBAND_AG

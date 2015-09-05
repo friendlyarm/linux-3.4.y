@@ -1,16 +1,9 @@
-
+#ifdef CUSTOMER_HW
 #include <osl.h>
 #include <dngl_stats.h>
 #include <dhd.h>
 
-#ifdef CONFIG_MACH_ODROID_4210
-#include <mach/gpio.h>
-#include <mach/regs-gpio.h>
-#include <plat/gpio-cfg.h>
-#include <plat/sdhci.h>
-#include <plat/devs.h>
-#define	sdmmc_channel	s3c_device_hsmmc0
-#endif
+#include "ap621x.h"
 
 struct wifi_platform_data dhd_wlan_control = {0};
 
@@ -19,13 +12,15 @@ uint bcm_wlan_get_oob_irq(void)
 {
 	uint host_oob_irq = 0;
 
-#ifdef CONFIG_MACH_ODROID_4210
-	printf("GPIO(WL_HOST_WAKE) = EXYNOS4_GPX0(7) = %d\n", EXYNOS4_GPX0(7));
-	host_oob_irq = gpio_to_irq(EXYNOS4_GPX0(7));
-	gpio_direction_input(EXYNOS4_GPX0(7));
+#ifdef GPIO_WLAN_HOST_WAKE
+	printf("GPIO(GPIO_WLAN_HOST_WAKE) = %d\n", brcm_gpio_host_wake());
+	host_oob_irq = gpio_to_irq(brcm_gpio_host_wake());
+	gpio_direction_input(brcm_gpio_host_wake());
+#elif defined(CONFIG_ARCH_S5P4418)
+	host_oob_irq = get_host_wake_irq();
 #endif
-	printf("host_oob_irq: %d \r\n", host_oob_irq);
 
+	printf("host_oob_irq: %d\n", host_oob_irq);
 	return host_oob_irq;
 }
 
@@ -33,14 +28,14 @@ uint bcm_wlan_get_oob_irq_flags(void)
 {
 	uint host_oob_irq_flags = 0;
 
-#ifdef CONFIG_MACH_ODROID_4210
+#if defined(GPIO_WLAN_HOST_WAKE) || defined(CONFIG_ARCH_S5P4418)
 #ifdef HW_OOB
 	host_oob_irq_flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE;
 #else
-	host_oob_irq_flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE | IORESOURCE_IRQ_SHAREABLE;
+	host_oob_irq_flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHEDGE  | IORESOURCE_IRQ_SHAREABLE;
 #endif
 #endif
-	printf("host_oob_irq_flags=%d\n", host_oob_irq_flags);
+	printf("host_oob_irq_flags = %x\n", host_oob_irq_flags);
 
 	return host_oob_irq_flags;
 }
@@ -52,16 +47,21 @@ int bcm_wlan_set_power(bool on)
 
 	if (on) {
 		printf("======== PULL WL_REG_ON HIGH! ========\n");
-#ifdef CONFIG_MACH_ODROID_4210
-		err = gpio_set_value(EXYNOS4_GPK1(0), 1);
+#ifdef GPIO_WLAN_EN
+		gpio_set_value(GPIO_WLAN_EN, 1);
+#elif defined(CONFIG_ARCH_S5P4418)
+		wifi_pm_gpio_ctrl("bcmdhd", 1);
 #endif
 		/* Lets customer power to get stable */
-		mdelay(100);
+		msleep(50);
 	} else {
 		printf("======== PULL WL_REG_ON LOW! ========\n");
-#ifdef CONFIG_MACH_ODROID_4210
-		err = gpio_set_value(EXYNOS4_GPK1(0), 0);
+#ifdef GPIO_WLAN_EN
+		gpio_set_value(GPIO_WLAN_EN, 0);
+#elif defined(CONFIG_ARCH_S5P4418)
+		wifi_pm_gpio_ctrl("bcmdhd", 0);
 #endif
+		msleep(50);
 	}
 
 	return err;
@@ -71,17 +71,21 @@ int bcm_wlan_set_carddetect(bool present)
 {
 	int err = 0;
 
+#if 0
 	if (present) {
 		printf("======== Card detection to detect SDIO card! ========\n");
-#ifdef CONFIG_MACH_ODROID_4210
 		err = sdhci_s3c_force_presence_change(&sdmmc_channel, 1);
-#endif
 	} else {
 		printf("======== Card detection to remove SDIO card! ========\n");
-#ifdef CONFIG_MACH_ODROID_4210
 		err = sdhci_s3c_force_presence_change(&sdmmc_channel, 0);
-#endif
 	}
+#endif
+
+#if defined(CONFIG_ARCH_S5P4418)
+	force_presence_change(NULL, present);
+#else
+	mmc_force_presence_change_onoff(&sdmmc_channel, present);
+#endif
 
 	return err;
 }
@@ -130,3 +134,4 @@ int bcm_wlan_set_plat_data(void) {
 	return 0;
 }
 
+#endif /* CUSTOMER_HW */

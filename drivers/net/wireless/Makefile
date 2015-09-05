@@ -59,9 +59,10 @@ obj-$(CONFIG_IWM)	+= iwmc3200wifi/
 
 obj-$(CONFIG_MWIFIEX)	+= mwifiex/
 
-obj-$(CONFIG_BCMDHD)	+= bcmdhd/
-obj-$(CONFIG_BCM43241) += DHD_REL_1_141_44_3/
-obj-$(CONFIG_BCM4354) += DHD_REL_1_141_64/
+#obj-$(CONFIG_BCMDHD)	+= bcmdhd/
+obj-$(CONFIG_BCMDHD)	+= bcm4336/
+obj-$(CONFIG_BCM43241)	+= DHD_REL_1_141_44_3/
+obj-$(CONFIG_BCM4354)	+= DHD_REL_1_141_64/
 
 obj-$(CONFIG_BRCMFMAC)	+= brcm80211/
 obj-$(CONFIG_BRCMSMAC)	+= brcm80211/
