@@ -60,6 +60,7 @@
 		SET_PARAM(s, d, clk_div_lv0);       \
 		SET_PARAM(s, d, clk_src_lv1);       \
 		SET_PARAM(s, d, clk_div_lv1);       \
+		SET_PARAM(s, d, clk_out_inv);       \
 		}	\
 	}
 
