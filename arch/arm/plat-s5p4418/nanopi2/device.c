@@ -37,6 +37,8 @@
 #include <mach/nxp-hdmi-cec.h>
 #endif
 
+#include <nxp-fb.h>
+
 /*------------------------------------------------------------------------------
  * BUS Configure
  */
@@ -229,7 +231,63 @@ static struct platform_device *fb_devices[] = {
 	&fb0_device,
 	#endif
 };
+
+static void nxp_platform_fb_data(struct nxp_lcd *lcd)
+{
+#if defined (CONFIG_FB0_NXP)
+	struct nxp_fb_plat_data *pdata = &fb0_plat_data;
+
+	if (lcd) {
+		pdata->x_resol = lcd->width;
+		pdata->y_resol = lcd->height;
+
+		pdata->lcd_with_mm = lcd->p_width;
+		pdata->lcd_height_mm = lcd->p_height;
+	}
+#endif
+}
 #endif /* CONFIG_FB_NXP */
+
+#if defined (CONFIG_NXP_DISPLAY_LCD)
+static void nxp_platform_disp_init(struct nxp_lcd *lcd)
+{
+	struct disp_vsync_info vsync;
+	struct nxp_lcd_timing *timing;
+	u32 clk = 800000000;
+	u32 div;
+
+	if (lcd) {
+		timing = &lcd->timing;
+
+		vsync.h_active_len	= lcd->width;
+		vsync.h_sync_width	= timing->h_sw;
+		vsync.h_back_porch	= timing->h_bp;
+		vsync.h_front_porch	= timing->h_fp;
+		vsync.h_sync_invert	= !lcd->polarity.inv_hsync;
+
+		vsync.v_active_len	= lcd->height;
+		vsync.v_sync_width	= timing->v_sw;
+		vsync.v_back_porch	= timing->v_bp;
+		vsync.v_front_porch	= timing->v_fp;
+		vsync.v_sync_invert	= !lcd->polarity.inv_vsync;
+
+		/* calculates pixel clock */
+		div  = timing->h_sw + timing->h_bp + timing->h_fp + lcd->width;
+		div *= timing->v_sw + timing->v_bp + timing->v_fp + lcd->height;
+		div *= lcd->freq ? : 60;
+		do_div(clk, div);
+
+		vsync.pixel_clock_hz= div;
+		vsync.clk_src_lv0	= CFG_DISP_PRI_CLKGEN0_SOURCE;
+		vsync.clk_div_lv0	= clk;
+		vsync.clk_src_lv1	= CFG_DISP_PRI_CLKGEN1_SOURCE;
+		vsync.clk_div_lv1	= CFG_DISP_PRI_CLKGEN1_DIV;
+		vsync.clk_out_inv	= lcd->polarity.rise_vclk;
+
+		nxp_platform_disp_device_data(DISP_DEVICE_LCD, &vsync, NULL, NULL);
+	}
+}
+#endif
 
 /*------------------------------------------------------------------------------
  * backlight : generic pwm device
@@ -1151,6 +1209,8 @@ static struct platform_device hdmi_cec_device = {
  */
 void __init nxp_board_devices_register(void)
 {
+	struct nxp_lcd *lcd = nanopi2_get_lcd();
+
 	printk("[Register board platform devices]\n");
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
@@ -1158,8 +1218,13 @@ void __init nxp_board_devices_register(void)
 	platform_device_register(&dfs_plat_device);
 #endif
 
+#if defined (CONFIG_NXP_DISPLAY_LCD)
+	nxp_platform_disp_init(lcd);
+#endif
+
 #if defined (CONFIG_FB_NXP)
 	printk("plat: add framebuffer\n");
+	nxp_platform_fb_data(lcd);
 	platform_add_devices(fb_devices, ARRAY_SIZE(fb_devices));
 #endif
 

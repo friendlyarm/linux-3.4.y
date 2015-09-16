@@ -67,6 +67,7 @@ struct disp_vsync_info {
 	int clk_div_lv0;
 	int clk_src_lv1;
 	int clk_div_lv1;
+	int clk_out_inv;
 };
 
 /*
