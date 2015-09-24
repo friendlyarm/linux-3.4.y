@@ -1,0 +1,10 @@
+config EXYNOS_MFC_V6
+	bool
+
+config VIDEO_EXYNOS_MFC
+	bool "Exynos MFC 6.x Driver"
+	depends on VIDEO_EXYNOS
+	select VIDEOBUF2_CORE
+	select EXYNOS_MFC_V6
+	---help---
+	  MFC driver for V4L2.

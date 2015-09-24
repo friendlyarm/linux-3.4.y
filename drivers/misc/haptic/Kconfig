@@ -1,0 +1,26 @@
+
+config HAPTIC_DRV260X
+	tristate "Haptic Controller(Immersion Corporation)"
+	depends on I2C
+	default n
+	help
+	  If you say yes here you get support for the Immersion Corporation DRV2604/DRV2605 haptic controller.
+
+config HAPTIC_DRV2605
+	tristate "DRV2604 Haptic Controller(Immersion Corporation)"
+	depends on I2C && HAPTIC_DRV260X
+	default n
+	help
+	  If you say yes here you get support for the Immersion Corporation DRV2604 haptic controller.
+	  DRV2604 is a haptic motor driver with register based architecture, allowing for I2C control.
+	  This driver provides haptic motor control and is accessed as a timed output device.
+
+config HAPTIC_DRV2605
+	tristate "DRV2605 Haptic Controller(Immersion Corporation)"
+	depends on I2C && HAPTIC_DRV260X
+	default n
+	help
+	  If you say yes here you get support for the Immersion Corporation DRV2605 haptic controller.
+	  DRV2605 is a haptic motor driver with register based architecture, allowing for I2C control.
+	  This driver provides haptic motor control and is accessed as a timed output device.
+

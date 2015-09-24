@@ -1,0 +1,47 @@
+#
+# Nexell multimedia device drivers
+#
+menuconfig V4L2_NXP
+    bool "Nexell V4L2 Devices"
+    depends on ARCH_CPU_SLSI
+    select V4L2_MEM2MEM_DEV
+    default n
+    ---help---
+      This is a representative nexell v4l2 device.
+
+if V4L2_NXP
+
+menuconfig VIDEO_NXP_CAPTURE
+    bool "Nexell Video capture interface"
+    depends on V4L2_NXP
+    default n
+    ---help---
+      Say Y here to enable Nexell Video Capture Interface
+
+if VIDEO_NXP_CAPTURE
+source "drivers/media/video/nexell/capture/Kconfig"
+endif
+
+menuconfig VIDEO_NXP_M2M
+    bool "Nexell M2M interface"
+    depends on V4L2_NXP
+    default n
+    ---help---
+      Say y here to enable Nexell M2M scaler or deinterlacer
+
+if VIDEO_NXP_M2M
+source "drivers/media/video/nexell/m2m/Kconfig"
+endif
+
+menuconfig VIDEO_NXP_OUT
+    bool "Nexell OUT interface"
+    depends on V4L2_NXP
+    default n
+    ---help---
+      Say y here to enable mlc, resolution converter, hdmi
+
+if VIDEO_NXP_OUT
+source "drivers/media/video/nexell/out/Kconfig"
+endif
+
+endif

@@ -1,0 +1,1 @@
+obj-$(CONFIG_VIDEO_THP7212_CAM) += thp7212-nx-cam.o

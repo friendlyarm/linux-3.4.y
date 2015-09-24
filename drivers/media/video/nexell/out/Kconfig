@@ -1,0 +1,35 @@
+if VIDEO_NXP_OUT
+
+config NXP_OUT_RESOLUTION_CONVERTER
+    bool "Enable out resolution converter"
+	select NXP_DISPLAY_RESCONV
+    default n
+    ---help---
+      Say y here to enable v4l2 resolution converter
+
+config NXP_OUT_HDMI
+    bool "Enable out HDMI"
+    default n
+    ---help---
+      Say y here to enable v4l2 hdmi
+
+if NXP_OUT_HDMI
+source arch/arm/mach-s5p4418/soc/hdmi/Kconfig
+endif
+
+config NXP_HDMI_CEC
+    depends on NXP_OUT_HDMI || NXP_DISPLAY_HDMI
+    bool "Enable HDMI CEC Misc Driver"
+    default n
+    ---help---
+      Say y here to enable hdmi cec module
+
+config NXP_OUT_TVOUT
+    bool "Enable tvout"
+    select NXP_DISPLAY_TVOUT
+    depends on ARCH_S5P6818
+    default n
+    ---help---
+      Say y here to enable v4l2 tvout
+
+endif

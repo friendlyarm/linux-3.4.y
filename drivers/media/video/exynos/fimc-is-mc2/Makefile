@@ -1,0 +1,1 @@
+obj-$(CONFIG_VIDEO_EXYNOS5_FIMC_IS2) += fimc-is-core.o fimc-is-framemgr.o fimc-is-video.o fimc-is-video-sensor.o fimc-is-video-isp.o fimc-is-video-scc.o fimc-is-video-scp.o fimc-is-mem.o fimc-is-device-flite.o fimc-is-device-sensor.o fimc-is-device-ischain.o fimc-is-interface.o fimc-is-time.o fimc-is-spi.o

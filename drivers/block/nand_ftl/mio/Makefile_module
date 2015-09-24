@@ -1,0 +1,48 @@
+#!/bin/bash
+
+obj-m := mio.o
+mio-y += mio.block.o \
+         mio.media.o \
+         mio.sys.o \
+         mio.smart.o \
+         media/exchange.o \
+         media/include/include.o \
+         media/ftl/ftl.o \
+         media/nfc/nfc.sche.o \
+         media/nfc/phy/nfc.phy.o \
+         media/nfc/phy/nfc.phy.scan.o \
+         media/nfc/phy/nfc.phy.rand.o \
+         media/nfc/phy/nfc.phy.readretry.o \
+         media/nfc/phy/nfc.phy.lowapi.o \
+         media/nfc/phy/nfc.phy.lowapi.rawread.o
+
+KDIR ?= /usr/src/linux
+PWD := $(shell pwd)
+
+modules:
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
+
+clean:
+	rm -rf .tmp_versions
+	rm -rf *.symvers
+	rm -rf *.order
+	rm -rf *.ko
+	rm -rf *.mod.*
+	rm -rf .*.cmd
+	rm -rf media/.*.cmd
+	rm -rf media/ftl/.*.cmd
+	rm -rf media/include/.*.cmd
+	rm -rf media/nfc/.*.cmd
+	rm -rf media/nfc/phy/.*.cmd
+	rm -rf mio.o
+	rm -rf mio.block.o
+	rm -rf mio.media.o
+	rm -rf mio.sys.o
+	rm -rf media/exchange.o
+	rm -rf media/nfc/phy/nfc.phy.o
+	rm -rf media/nfc/phy/nfc.phy.scan.o
+	rm -rf media/nfc/phy/nfc.phy.rand.o
+	rm -rf media/nfc/phy/nfc.phy.readretry.o
+	rm -rf media/nfc/phy/nfc.phy.lowapi.o
+	rm -rf media/nfc/phy/nfc.phy.lowapi.rawread.o
+

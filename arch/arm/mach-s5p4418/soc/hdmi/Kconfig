@@ -1,0 +1,23 @@
+choice
+    prompt "HDMI Audio Interface"
+    depends on NXP_OUT_HDMI
+    default NXP_HDMI_AUDIO_SPDIF
+    help
+      Choose which interface to use for hdmi audio output
+
+config NXP_HDMI_AUDIO_SPDIF
+    depends on NXP_OUT_HDMI
+    bool "SPDIF"
+
+config NXP_HDMI_AUDIO_I2S
+    depends on NXP_OUT_HDMI
+    bool "I2S"
+
+endchoice
+
+config NXP_HDMI_USE_HDCP
+    depends on NXP_OUT_HDMI
+    bool "HDMI use HDCP block"
+    default n
+    ---help---
+      Say y here to enable hdcp module

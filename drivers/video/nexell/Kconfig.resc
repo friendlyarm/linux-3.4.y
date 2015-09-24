@@ -1,0 +1,95 @@
+#
+# Video configuration
+#
+
+menu "Graphics support"
+	depends on HAS_IOMEM
+
+config FB_NXP_ION_MEM
+	bool "Allocate framebuffer with ION "
+	depends on FB_NXP
+	select ION
+	select ION_NXP
+	default n
+
+config FB0_NXP
+	bool "Support primary   frame buffer (/dev/fb0)"
+	depends on FB_NXP
+	select NXP_DISPLAY
+	select NXP_DISPLAY_1ST
+	default y
+
+	config FB0_NXP_DISPOUT
+		int "Display Out [0/1]"
+		depends on FB0_NXP
+		default 0
+
+config FB1_NXP
+	bool "Support secondary frame buffer (/dev/fb1)"
+	depends on FB_NXP
+	select NXP_DISPLAY
+	select NXP_DISPLAY_2ST
+	default n
+
+	config FB1_NXP_DISPOUT
+		int "Display Out [0/1]"
+		depends on FB1_NXP
+		default 1
+
+config NXP_DISPLAY_LCD
+	bool "LCD"
+	default n
+
+	config NXP_DISPLAY_LCD_IN
+		int "Display In  [0=Display 0, 1=Display 1, 2=Resolution Convertor]"
+		depends on NXP_DISPLAY_LCD
+		default 0
+
+config NXP_DISPLAY_LVDS
+	bool "LVDS"
+	default n
+
+	config NXP_DISPLAY_LVDS_IN
+		int "Display In  [0=Display 0, 1=Display 1, 2=Resolution Convertor]"
+		depends on NXP_DISPLAY_LVDS
+		default 0
+
+config NXP_DISPLAY_MIPI
+	bool "MIPI"
+
+	config NXP_DISPLAY_MIPI_IN
+		int "Display In  [0=Display 0, 1=Display 1, 2=Resolution Convertor]"
+		depends on NXP_DISPLAY_MIPI
+		default 0
+
+config NXP_DISPLAY_HDMI
+	bool "HDMI"
+
+	config NXP_DISPLAY_HDMI_IN
+		int "Display In  [0=Display 0, 1=Display 1, 2=Resolution Convertor]"
+		depends on NXP_DISPLAY_HDMI
+		default 0
+
+	choice
+		prompt "Resolution"
+		depends on NXP_DISPLAY_HDMI
+		default NXP_DISPLAY_HDMI_1280_720P
+
+	config	NXP_DISPLAY_HDMI_1280_720P
+		bool "1280 *  720p"
+
+	config	NXP_DISPLAY_HDMI_1920_1080P
+		bool "1920 * 1080p"
+
+	endchoice
+
+config NXP_DISPLAY_RESC
+	bool "RESOLUTION CONVERTOR"
+	default n
+
+	config NXP_DISPLAY_RESC_IN
+		int "Display In  [0=Display 0, 1=Display 1]"
+		depends on NXP_DISPLAY_RESC
+		default 0
+
+endmenu
