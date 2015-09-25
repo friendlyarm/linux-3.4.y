@@ -60,8 +60,8 @@
 #define DW_MCI_FIFO_STATUS_MASK 0x3ffe0000
 
 #define DW_MCI_FIFO_CHECK_WARN(host) \
-	if (mci_readl(host,STATUS) & DW_MCI_FIFO_STATUS_MASK) \
-		dev_warn(&host->dev,"fifo is not empty");
+	if (mci_readl(host, STATUS) & DW_MCI_FIFO_STATUS_MASK) \
+		dev_warn(&host->dev, "fifo is not empty");
 
 #ifdef CONFIG_MMC_DW_IDMAC
 struct idmac_desc {
@@ -158,7 +158,7 @@ extern void mmc_stop_host(struct mmc_host *host);
 
 void sw_mci_rescan_card(unsigned insert)
 {
-	struct dw_mci_slot* slot = NULL;
+	struct dw_mci_slot *slot;
 
 	BUG_ON(CFG_WIFI_SDIO_ID > 3);
 
@@ -166,10 +166,10 @@ void sw_mci_rescan_card(unsigned insert)
 
 	slot->last_detect_state = insert ? 1 : 0;
 
-	if (!insert)
+	if (insert)
+		mmc_detect_change(slot->mmc, 0);
+	else
 		mmc_stop_host(slot->mmc);
-
-	mmc_detect_change(slot->mmc, 0);
 
 	return;
 }
@@ -604,7 +604,7 @@ static int dw_mci_pre_dma_transfer(struct dw_mci *host,
 	struct scatterlist *sg;
 	unsigned int i, sg_len;
 
-	if(!host->pdata->mode == PIO_MODE )
+	if (!host->pdata->mode == PIO_MODE)
 		return -ENOSYS;
 
 	if (!next && data->host_cookie)
@@ -2548,7 +2548,6 @@ int dw_mci_probe(struct dw_mci *host)
 	spin_lock_init(&host->lock);
 	INIT_LIST_HEAD(&host->queue);
 
-
 	host->dma_ops = host->pdata->dma_ops;
 	dw_mci_init_dma(host);
 
@@ -2756,7 +2755,6 @@ void dw_mci_remove(struct dw_mci *host)
 		regulator_disable(host->vmmc);
 		regulator_put(host->vmmc);
 	}
-
 }
 EXPORT_SYMBOL(dw_mci_remove);
 
@@ -2843,8 +2841,8 @@ int dw_mci_resume(struct dw_mci *host)
 
 		if (!slot)
 			continue;
-		if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL){
-			if (dw_mci_get_cd(mmc)){
+		if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL) {
+			if (dw_mci_get_cd(mmc)) {
 				set_bit(DW_MMC_CARD_PRESENT, &slot->flags);
 				slot->last_detect_state = 1;
 

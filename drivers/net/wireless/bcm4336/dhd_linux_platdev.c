@@ -462,7 +462,6 @@ static int wifi_ctrlfunc_register_drv(void)
 
 void wifi_ctrlfunc_unregister_drv(void)
 {
-
 #if defined(CONFIG_DTS) && !defined(CUSTOMER_HW)
 	DHD_ERROR(("unregister wifi platform drivers\n"));
 	platform_driver_unregister(&wifi_platform_dev_driver);
@@ -487,8 +486,9 @@ void wifi_ctrlfunc_unregister_drv(void)
 		adapter = &dhd_wifi_platdata->adapters[0];
 		if (is_power_on) {
 			wifi_platform_set_power(adapter, FALSE, WIFI_TURNOFF_DELAY);
-			wifi_platform_bus_enumerate(adapter, FALSE);
 		}
+		/* Maybe powered off by wl_android_wifi_off() */
+		wifi_platform_bus_enumerate(adapter, FALSE);
 	}
 #endif /* !defined(CONFIG_DTS) */
 
