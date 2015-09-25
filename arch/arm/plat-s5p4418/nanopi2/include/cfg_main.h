@@ -29,7 +29,8 @@
  * 	System Name
  */
 #define	CFG_SYS_CPU_NAME						"s5p4418"
-#define	CFG_SYS_BOARD_NAME						"s5p4418-drone2nd"
+#define	CFG_SYS_MACH_NAME						"NANOPI2"
+#define	CFG_SYS_BOARD_NAME						"s5p4418-NanoPi2"
 
 /*------------------------------------------------------------------------------
  * 	BUS config
