@@ -122,9 +122,22 @@ const u8 g_DispBusSI[3] = {
  * CPU Frequence
  */
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
+static unsigned long dfs_freq_table[][2] = {
+	{ 1400000, },
+	{ 1200000, },
+	{ 1000000, },
+	{  800000, },
+	{  700000, },
+	{  600000, },
+	{  500000, },
+	{  400000, },
+};
+
 struct nxp_cpufreq_plat_data dfs_plat_data = {
 	.pll_dev		= CONFIG_NXP_CPUFREQ_PLLDEV,
 	.supply_name	= "vdd_arm_1.3V",	// refer to CONFIG_REGULATOR_NXE2000
+	.freq_table		= dfs_freq_table,
+	.table_size		= ARRAY_SIZE(dfs_freq_table),
 	.max_cpufreq	= 1400*1000,
 	.max_retention	=   20*1000,
 	.rest_cpufreq	=  400*1000,
@@ -176,7 +189,7 @@ static struct platform_device dm9000_plat_device = {
 		.platform_data	= &eth_plat_data,
 	}
 };
-#endif	/* CONFIG_DM9000 || CONFIG_DM9000_MODULE */
+#endif /* CONFIG_DM9000 || CONFIG_DM9000_MODULE */
 
 /*------------------------------------------------------------------------------
  * DISPLAY (LVDS) / FB
@@ -276,7 +289,7 @@ static struct platform_device nand_plat_device = {
 		.platform_data	= &nand_plat_data,
 	},
 };
-#endif	/* CONFIG_MTD_NAND_NXP */
+#endif /* CONFIG_MTD_NAND_NXP */
 
 /*------------------------------------------------------------------------------
  * Touch screen
@@ -315,7 +328,7 @@ static struct platform_device key_plat_device = {
 		.platform_data	= &key_plat_data
 	},
 };
-#endif	/* CONFIG_KEYBOARD_NXP_KEY || CONFIG_KEYBOARD_NXP_KEY_MODULE */
+#endif /* CONFIG_KEYBOARD_NXP_KEY || CONFIG_KEYBOARD_NXP_KEY_MODULE */
 
 /*------------------------------------------------------------------------------
  * ASoC Codec platform device
@@ -387,7 +400,7 @@ static struct i2c_board_info __initdata mma865x_i2c_bdi = {
 	.type	= "mma8653",
 	.addr	= 0x1D//(0x3a),
 };
-#endif	/* CONFIG_SENSORS_MMA865X */
+#endif /* CONFIG_SENSORS_MMA865X */
 
 #if defined(CONFIG_SENSORS_STK831X) || defined(CONFIG_SENSORS_STK831X_MODULE)
 #include <linux/i2c.h>
@@ -404,7 +417,7 @@ static struct i2c_board_info __initdata stk831x_i2c_bdi = {
 	.addr	= (0x22),
 #endif
 };
-#endif	/* CONFIG_SENSORS_STK831X */
+#endif /* CONFIG_SENSORS_STK831X */
 
 /*------------------------------------------------------------------------------
  * reserve mem
@@ -441,7 +454,7 @@ void __init nxp_reserve_mem(void)
 #endif
 	nxp_cma_region_reserve(regions, map);
 }
-#endif	/* CONFIG_CMA */
+#endif /* CONFIG_CMA */
 
 #if defined(CONFIG_I2C_NXP_PORT3)
 #define I2CUDELAY(x)	(1000000/x)
@@ -468,6 +481,44 @@ static struct platform_device *i2c_devices[] = {
 	&i2c_device_ch3,
 };
 #endif /* CONFIG_I2C_NXP_PORT3 */
+
+/*------------------------------------------------------------------------------
+ * PMIC platform device
+ */
+#if defined(CONFIG_REGULATOR_FIXED_VOLTAGE)
+#include <linux/regulator/machine.h>
+#include <linux/regulator/fixed.h>
+
+/* Dummy supplies */
+static struct regulator_consumer_supply fixed_dummy_supplies[] = {
+	REGULATOR_SUPPLY("vdd_arm_1.3V", NULL),
+	REGULATOR_SUPPLY("vdd_ddr_1.6V", NULL),
+};
+
+struct regulator_init_data fixed_dummy_initdata = {
+	.consumer_supplies	= fixed_dummy_supplies,
+	.num_consumer_supplies	= ARRAY_SIZE(fixed_dummy_supplies),
+	.constraints	= {
+		.always_on	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct fixed_voltage_config fixed_dummy_config = {
+	.supply_name	= "fixed_vdds",
+	.microvolts	= 1350000,
+	.gpio		= -EINVAL,
+	.init_data	= &fixed_dummy_initdata,
+};
+
+static struct platform_device fixed_supply_dummy_device = {
+	.name		= "reg-fixed-voltage",
+	.id		= 0,
+	.dev		= {
+		.platform_data	= &fixed_dummy_config,
+	},
+};
+#endif /* CONFIG_REGULATOR_FIXED_VOLTAGE */
 
 /*------------------------------------------------------------------------------
  * v4l2 platform device
@@ -1075,7 +1126,7 @@ static struct platform_device rfkill_device = {
 		.platform_data	= &rfkill_plat_data,
 	}
 };
-#endif	/* CONFIG_RFKILL_NXP */
+#endif /* CONFIG_RFKILL_NXP */
 
 /*------------------------------------------------------------------------------
  * USB HSIC power control.
@@ -1145,6 +1196,11 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_I2C_NXP_PORT3)
 	platform_add_devices(i2c_devices, ARRAY_SIZE(i2c_devices));
+#endif
+
+#if defined(CONFIG_REGULATOR_FIXED_VOLTAGE)
+	printk("plat: add device fixed voltage\n");
+	platform_device_register(&fixed_supply_dummy_device);
 #endif
 
 #if defined(CONFIG_SND_SPDIF_TRANSCIEVER) || defined(CONFIG_SND_SPDIF_TRANSCIEVER_MODULE)
