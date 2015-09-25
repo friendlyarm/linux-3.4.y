@@ -3,7 +3,9 @@
  *
  * FocalTech ft5x0x TouchScreen driver.
  *
- * Copyright (c) 2010  Focal tech Ltd.
+ * Copyright (c) 2012 FriendlyARM (www.arm9.net)
+ *
+ * Copyright (c) 2010 Focal tech Ltd.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -14,354 +16,49 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- *
- *	note: only support mulititouch	Wenfs 2010-10-01
  */
 
-#include <linux/module.h>
-#include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/hrtimer.h>
-#include <linux/slab.h>
-#include <linux/device.h>
-#include <linux/platform_device.h>
-
+#include <linux/module.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
-
-#include <linux/interrupt.h>
 #include <linux/delay.h>
+#include <linux/slab.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
+#include <linux/gpio.h>
+#include <linux/platform_device.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
 
-#include <mach/platform.h>
+#include <mach/gpio.h>
+#include <linux/platform_data/ctouch.h>
+#include <linux/platform_data/ft5x0x_touch.h>
+#if defined(CONFIG_PLAT_SAMSUNG)
+#include <plat/gpio-cfg.h>
+#endif
+
 #include "ft5x06_ts.h"
 
-//#undef CONFIG_FT5X0X_MULTITOUCH
-//#define DEBUG
-//#define DEBUG_1
-
-#ifdef DEBUG
-	#define TS_DEBUG(fmt,args...) 	do { printk(fmt, ##args); } while (0)
-	#else
-	#define TS_DEBUG(fmt,args...)	do { } while (0)
+#ifndef CONFIG_TOUCHSCREEN_FT5X0X_SINGLE
+#define CONFIG_FT5X0X_MULTITOUCH		1
 #endif
 
-#ifdef DEBUG_1
-	#define TS_DEBUG1(fmt,args...) printk(fmt, ##args )
-	#else
-	#define TS_DEBUG1(fmt,args...)	do { } while (0)
-#endif
+#define TOUCH_MAX_X						0x700
+#define TOUCH_MAX_Y						0x400
 
-#include <mach/devices.h>
+static int swap_xy = 0;
+static int scal_xy = 0;
 
-#ifdef CONFIG_FT5X0X_MULTITOUCH
-#define	MAX_SUPPORT_POINT		10
-#define	DEF_SUPPORT_POINT		5
-#else
-#define	DEF_SUPPORT_POINT 		1
-#define	MAX_SUPPORT_POINT		1
-#endif
 
-#define	CAL_POINTER_NUM			7
-
-struct ts_pointercal {
-	/* for attribute kobject */
-	struct attribute_group *attr;
-	struct kobject *kobj;
-	/* pointer calibration */
-	int touch_point_max;
-	int	enable;
-	int x_resol;
-	int y_resol;
-	int rotate;
-	int	pointercal[CAL_POINTER_NUM];
-};
-static inline void ts_adjust_calibration(u16 *x, u16 *y);
+/*---------------------------------------------------------
+ * Chip I/O operations
+ */
 
 static struct i2c_client *this_client;
 
-struct ts_event {
-    u16  touch_points;
-	u16	x[MAX_SUPPORT_POINT];
-	u16	y[MAX_SUPPORT_POINT];
-	s16 ID[MAX_SUPPORT_POINT];
-	u16	st[MAX_SUPPORT_POINT];
-	u16	press[MAX_SUPPORT_POINT];
-};
-
-struct ft5x0x_ts_data {
-	struct input_dev *input_dev;
-	struct ts_event	event;
-	struct workqueue_struct *ts_work;
-	struct delayed_work event_work;
-	struct mutex lock;
-    int touch_point_max;
-	struct ts_pointercal pointer;
-};
-#define	DELAY_WORK_JIFFIES 		1
-
-/*----------------------------------------------------------------------------*/
-/*
- *  #> cat /sys/devices/platform/touch/calibration
- *
- *	[SET calibration]
- * step 1:
- *	- clear default calibration value
- * 	#> echo > /sys/devices/platform/touch/calibration
- *
- * step 2:
- *	- calibration with "ts_calibrate"
- *
- * step 3:
- *	- get new calibration value
- *	#> cat .../tslib/etc/pointercal
- *
- * step 4:
- *	- set new calibration value
- *	#> echo xxxx,xxx,xx,,, > /sys/devices/platform/touch/calibration
-*
- * step 5:
- *	- delete .../tslib/etc/pointercal
- *	#> rm .../tslib/etc/pointercal
- *
- */
-static ssize_t ts_calibration_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_pointercal *point = &ts->pointer;
-	char *s = buf;
-
-	TS_DEBUG("ts_calibration_show\n");
-	s += sprintf(s, "%d,%d,%d,%d,%d,%d,%d\n",
-		point->pointercal[0], point->pointercal[1], point->pointercal[2],
-		point->pointercal[3], point->pointercal[4], point->pointercal[5],
-		point->pointercal[6]);
-
-	if (s != buf)
-		*(s-1) = '\n';
-
-	return (s - buf);
-}
-
-static ssize_t ts_calibration_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t n)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_pointercal *point = &ts->pointer;
-	int	pointercal[CAL_POINTER_NUM] = { 0, };
-	int len = sizeof(int)*CAL_POINTER_NUM;
-
-	TS_DEBUG("ts_calibration_store\n");
-	if (NULL == buf)
-		return n;
-
-	sscanf(buf,"%d,%d,%d,%d,%d,%d,%d",
-		&pointercal[0], &pointercal[1], &pointercal[2],
-		&pointercal[3], &pointercal[4], &pointercal[5],
-		&pointercal[6]);
-
-	point->enable = 0;
-	memset(&point->pointercal, 0, len);
-
-	if (pointercal[0] != 0 || pointercal[1] != 0 || pointercal[2] != 0 ||
-		pointercal[3] != 0 || pointercal[4] != 0 || pointercal[5] != 0 ||
-		pointercal[6] != 0)
-	{
-		point->enable = 1;
-		memcpy(point->pointercal, pointercal, len);
-	}
-	return n;
-}
-
-static ssize_t ts_rotate_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_pointercal *point = &ts->pointer;
-	char *s = buf;
-
-	TS_DEBUG("ts_rotate_show\n");
-	s += sprintf(s, "%d\n", point->rotate);
-	if (s != buf)
-		*(s-1) = '\n';
-	return (s - buf);
-}
-
-static ssize_t ts_rotate_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t n)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_pointercal *point = &ts->pointer;
-	int	rotate= 0;
-	TS_DEBUG("ts_rotate_store\n");
-	if (NULL == buf)
-		return n;
-
-	point->rotate = 0;
-	sscanf(buf,"%d", &rotate);
-	if ( 90 == rotate ||
-		180 == rotate ||
-		270 == rotate) {
-		point->rotate = rotate;
-	}
-	return n;
-}
-
-static DEVICE_ATTR(calibration, S_IRUGO | S_IWUSR, ts_calibration_show, ts_calibration_store);
-static DEVICE_ATTR(rotate, S_IRUGO | S_IWUSR, ts_rotate_show, ts_rotate_store);
-
-static ssize_t ts_points_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	char *s = buf;
-
-	TS_DEBUG("ts_points_show\n");
-	s += sprintf(s, "%d\n", ts->touch_point_max);
-	if (s != buf)
-		*(s-1) = '\n';
-	return (s - buf);
-}
-
-static ssize_t ts_points_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t n)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_pointercal *point = &ts->pointer;
-	int	points= 0;
-	TS_DEBUG("ts_points_store\n");
-	if (NULL == buf)
-		return n;
-
-	sscanf(buf,"%d", &points);
-
-	if (points > 0 && (MAX_SUPPORT_POINT + 1) > points) {
-		ts->touch_point_max  = points;
-		point->touch_point_max = points;
-	}
-	return n;
-}
-
-static DEVICE_ATTR(points, S_IRUGO | S_IWUSR,
-		ts_points_show, ts_points_store);
-
-static struct attribute *ts_attrs[] = {
-	&dev_attr_calibration.attr,
-	&dev_attr_rotate.attr,
-	&dev_attr_points.attr,
-	NULL,
-};
-
-static struct attribute_group ts_attr_group = {	.attrs = (struct attribute **) ts_attrs, };
-
-static inline void ts_adjust_calibration(u16 *x, u16 *y)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_pointercal *point = &ts->pointer;
-	TS_DEBUG1("[x:%4d,y:%4d]", *x, *y);
-	if (90 == point->rotate) {
-		int rx = (int)*x, ry = (int)*y;
-		int tx = (int)*x;
-		int yres = point->y_resol;
-		rx = ry;
-		ry = yres - tx;
-		*x = (u16)rx, *y = (u16)ry;
-		TS_DEBUG1("-> ro90 [x:%4d,y:%4d]", *x, *y);
-	} else {
-		if (point->enable) {
-			int rx = (int)*x, ry = (int)*y;
-			int tx = (int)*x, ty = (int)*y;
-      		rx = ((point->pointercal[2] + point->pointercal[0]*tx + point->pointercal[1]*ty)
-      				/ point->pointercal[6]);
-      		ry = ((point->pointercal[5] + point->pointercal[3]*tx + point->pointercal[4]*ty)
-      				/ point->pointercal[6]);
-      		*x = (u16)rx, *y = (u16)ry;
-	    	TS_DEBUG1("-> [x:%4d,y:%4d]", *x, *y);
-		}
-	}
-	TS_DEBUG1("\n");
-}
-
-static void ts_setup_calibration(struct i2c_client *client)
-{
-	struct nxp_ts_cali_plat_data *plat = client->dev.platform_data;
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(client);
-	struct ts_pointercal *point = &ts->pointer;
-	struct kobject *kobj = NULL;
-	int len = sizeof(int)*CAL_POINTER_NUM;
-	int ret;
-
-	TS_DEBUG("ts_setup_calibration\n");
-
-	ts->touch_point_max = DEF_SUPPORT_POINT;
-
-	/*
-	 *  create attribute interface
-	 */
-	kobj = kobject_create_and_add("touch", &platform_bus.kobj);
-	if (! kobj) {
-		printk(KERN_ERR "Fail, create kobject for touch calibration ...\n");
-		return;
-	}
-	ret = sysfs_create_group(kobj, &ts_attr_group);
-	if (ret) {
-		printk(KERN_ERR "Fail, create sysfs group for touch calibration...\n");
-		kobject_del(kobj);
-		return;
-	}
-	point->attr = &ts_attr_group;
-	point->kobj = kobj;
-    point->enable = 0;
-
-	if (! plat)
-		return;
-
-	point->x_resol = plat->x_resol;
-    point->y_resol = plat->y_resol;
-    if ( 90 == plat->rotate ||
-    	180 == plat->rotate ||
-    	270 == plat->rotate) {
-    	point->rotate = plat->rotate;
-    }
-
-	/* set calibration */
-	if (plat->pointercal[0] != 0 || plat->pointercal[1] != 0 ||
-		plat->pointercal[2] != 0 || plat->pointercal[3] != 0 ||
-		plat->pointercal[4] != 0 || plat->pointercal[5] != 0 ||
-		plat->pointercal[6] != 0 ) {
-		memcpy(point->pointercal, plat->pointercal, len);
-		point->enable = 1;
-		TS_DEBUG("TS: pointercal {%d, %d, %d, %d, %d, %d, %d }\n",
-			point->pointercal[0], point->pointercal[1], point->pointercal[2],
-			point->pointercal[3], point->pointercal[4], point->pointercal[5],
-			point->pointercal[6]);
-	}
-
-	if (0 > plat->touch_points ||
-		plat->touch_points> MAX_SUPPORT_POINT) {
-		printk("FT5X0X TS support touch points 1 ~ %d, default %d\n",
-			MAX_SUPPORT_POINT, ts->touch_point_max);
-		return;
-	}
-
-	point->touch_point_max = plat->touch_points;
-	ts->touch_point_max = plat->touch_points;
-}
-
-static void ts_release_calibration(struct i2c_client *client)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(client);
-	struct ts_pointercal *point = &ts->pointer;
-
-	if (point->attr)
-		sysfs_remove_group(point->kobj, point->attr);
-
-    if (point->kobj)
-    	kobject_del(point->kobj);
-}
-
-static int ft5x0x_i2c_read(char *rxdata, int length)
-{
+static int ft5x0x_i2c_rxdata(char *rxdata, int length) {
 	int ret;
 	struct i2c_msg msgs[] = {
 		{
@@ -369,7 +66,8 @@ static int ft5x0x_i2c_read(char *rxdata, int length)
 			.flags	= 0,
 			.len	= 1,
 			.buf	= rxdata,
-		}, {
+		},
+		{
 			.addr	= this_client->addr,
 			.flags	= I2C_M_RD,
 			.len	= length,
@@ -379,14 +77,13 @@ static int ft5x0x_i2c_read(char *rxdata, int length)
 
 	ret = i2c_transfer(this_client->adapter, msgs, 2);
 	if (ret < 0)
-		pr_err("msg %s i2c read error: %d\n", __func__, ret);
+		pr_err("%s: i2c read error: %d\n", __func__, ret);
 
 	return ret;
 }
 
-#if (0)
-static int ft5x0x_i2c_write(char *txdata, int length)
-{
+#if 0
+static int ft5x0x_i2c_txdata(char *txdata, int length) {
 	int ret;
 	struct i2c_msg msg[] = {
 		{
@@ -399,210 +96,327 @@ static int ft5x0x_i2c_write(char *txdata, int length)
 
 	ret = i2c_transfer(this_client->adapter, msg, 1);
 	if (ret < 0)
-		pr_err("%s i2c write error: %d\n", __func__, ret);
+		pr_err("%s: i2c write error: %d\n", __func__, ret);
 
 	return ret;
 }
 
-static int ft5x0x_i2c_set_reg(u8 addr, u8 para)
-{
-    u8 buf[3];
-    int ret = -1;
+static int ft5x0x_write_reg(u8 addr, u8 val) {
+	u8 buf[4];
+	int ret;
 
-    buf[0] = addr;
-    buf[1] = para;
-    ret = ft5x0x_i2c_write(buf, 2);
-    if (ret < 0) {
-        pr_err("write reg failed! %#x ret: %d", buf[0], ret);
-        return -1;
-    }
-    return 0;
+	buf[0] = addr;
+	buf[1] = val;
+	ret = ft5x0x_i2c_txdata(buf, 2);
+	if (ret < 0) {
+		pr_err("write 0x%02x to reg (0x%02x) failed, %d", addr, val, ret);
+		return -1;
+	}
+
+	return 0;
 }
 #endif
 
-static void ft5x0x_ts_release(void)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
+static int ft5x0x_read_reg(u8 addr, u8 *pdata) {
+	u8 buf[4] = { 0 };
+	struct i2c_msg msgs[] = {
+		{
+			.addr	= this_client->addr,
+			.flags	= 0,
+			.len	= 1,
+			.buf	= buf,
+		},
+		{
+			.addr	= this_client->addr,
+			.flags	= I2C_M_RD,
+			.len	= 1,
+			.buf	= buf,
+		},
+	};
+	int ret;
 
-	TS_DEBUG("[R]");
+	buf[0] = addr;
+
+	ret = i2c_transfer(this_client->adapter, msgs, 2);
+	if (ret < 0) {
+		pr_err("read reg (0x%02x) error, %d\n", addr, ret);
+	} else {
+		*pdata = buf[0];
+	}
+
+	return ret;
+}
+
+static int ft5x0x_read_fw_ver(unsigned char *val)
+{
+	int ret;
+
+	*val = 0xff;
+	ret = ft5x0x_read_reg(FT5X0X_REG_FIRMID, val);
+	if (*val == 0x06) {
+#if 0
+		swap_xy = 1;
+		scal_xy = 1;
+#endif
+	} else {
+		/* TODO: Add support for other version */
+	}
+
+	return ret;
+}
+
+
+/*---------------------------------------------------------
+ * Touch core support
+ */
+
+static void ft5x0x_ts_report(struct ft5x0x_ts_data *ts) {
+	struct ft5x0x_event *event = &ts->event;
+	int x, y;
+	int i;
+
 #ifdef CONFIG_FT5X0X_MULTITOUCH
+	for (i = 0; i < event->touch_point; i++) {
+		if (swap_xy) {
+			x = event->y[i];
+			y = event->x[i];
+		} else {
+			x = event->x[i];
+			y = event->y[i];
+		}
+
+		if (scal_xy) {
+			x = (x * ts->screen_max_x) / TOUCH_MAX_X;
+			y = (y * ts->screen_max_y) / TOUCH_MAX_Y;
+		}
+
+		input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
+		input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
+
+		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, event->pressure);
+		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
+		input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, i);
+
+		input_mt_sync(ts->input_dev);
+	}
+#else
+	if (event->touch_point == 1) {
+		if (swap_xy) {
+			x = event->y[i];
+			y = event->x[i];
+		} else {
+			x = event->x[i];
+			y = event->y[i];
+		}
+
+		if (scal_xy) {
+			x = (x * ts->screen_max_x) / TOUCH_MAX_X;
+			y = (y * ts->screen_max_y) / TOUCH_MAX_Y;
+		}
+
+		input_report_abs(ts->input_dev, ABS_X, x);
+		input_report_abs(ts->input_dev, ABS_Y, y);
+		input_report_abs(ts->input_dev, ABS_PRESSURE, event->pressure);
+	}
+
+	input_report_key(ts->input_dev, BTN_TOUCH, 1);
+#endif
+
+	input_sync(ts->input_dev);
+}
+
+static void ft5x0x_ts_release(struct ft5x0x_ts_data *ts) {
+#ifdef CONFIG_FT5X0X_MULTITOUCH
+#if 0
+	/* NOT needed for ICS */
 	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+#endif
 	input_mt_sync(ts->input_dev);
 #else
 	input_report_abs(ts->input_dev, ABS_PRESSURE, 0);
 	input_report_key(ts->input_dev, BTN_TOUCH, 0);
 #endif
+
 	input_sync(ts->input_dev);
 }
 
-#define	TOUCH_RELEASE		(0)
-#define	TOUCH_PRESS			(1<<0)
-#define	TOUCH_PRESSED		(1<<1)
-
-static int ft5x0x_ts_value(void)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_event *event = &ts->event;
-	u8 buf[64] = {0};
-	int cnt = ts->touch_point_max;
-	int ret = -1;
+static int ft5x0x_read_data(struct ft5x0x_ts_data *ts) {
+	struct ft5x0x_event *event = &ts->event;
+	u8 buf[32] = { 0 };
+	int ret;
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
-	int len = (cnt * 6) + 1;
-	int i = 0;
-	ret = ft5x0x_i2c_read(buf, len);
+	ret = ft5x0x_i2c_rxdata(buf, 31);
 #else
-    ret = ft5x0x_i2c_read(buf, 7);
+	ret = ft5x0x_i2c_rxdata(buf, 7);
 #endif
-    if (0 > ret) {
-		printk("%s read_data i2c_rxdata failed: %d\n", __func__, ret);
+	if (ret < 0) {
+		printk("%s: read touch data failed, %d\n", __func__, ret);
 		return ret;
 	}
 
-	event->touch_points = buf[2] & 0x0F;	// 000 0111
-    if (event->touch_points == 0) {
-        ft5x0x_ts_release();
-        return 1;
-    }
+	memset(event, 0, sizeof(struct ft5x0x_event));
 
-	if (event->touch_points > cnt)
-		event->touch_points = cnt;
+	event->touch_point = buf[2] & 0x07;
+
+	if (!event->touch_point) {
+		ft5x0x_ts_release(ts);
+		return 1;
+	}
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
-	mutex_lock(&ts->lock);
-    for (i = 0; event->touch_points > i; i++) {
-    	short reg = 0x03 + (i*6);
-		event->x [i] = (s16)((buf[reg + 0] & 0x0F) << 8) | (s16)buf[reg + 1];
-		event->y [i] = (s16)((buf[reg + 2] & 0x0F) << 8) | (s16)buf[reg + 3];
-		event->ID[i] = (i+1);
-		event->st[i] = (s16)((buf[reg] & 0xc0) >> 6);
-		if (1 != event->st[i])
-			ts_adjust_calibration(&event->x[i], &event->y[i]);	/* Add by jhkim */
+	switch (event->touch_point) {
+		case 5:
+			event->x[4] = (s16)(buf[0x1b] & 0x0F)<<8 | (s16)buf[0x1c];
+			event->y[4] = (s16)(buf[0x1d] & 0x0F)<<8 | (s16)buf[0x1e];
+		case 4:
+			event->x[3] = (s16)(buf[0x15] & 0x0F)<<8 | (s16)buf[0x16];
+			event->y[3] = (s16)(buf[0x17] & 0x0F)<<8 | (s16)buf[0x18];
+		case 3:
+			event->x[2] = (s16)(buf[0x0f] & 0x0F)<<8 | (s16)buf[0x10];
+			event->y[2] = (s16)(buf[0x11] & 0x0F)<<8 | (s16)buf[0x12];
+		case 2:
+			event->x[1] = (s16)(buf[0x09] & 0x0F)<<8 | (s16)buf[0x0a];
+			event->y[1] = (s16)(buf[0x0b] & 0x0F)<<8 | (s16)buf[0x0c];
+		case 1:
+			event->x[0] = (s16)(buf[0x03] & 0x0F)<<8 | (s16)buf[0x04];
+			event->y[0] = (s16)(buf[0x05] & 0x0F)<<8 | (s16)buf[0x06];
+			break;
+		default:
+			printk("%s: invalid touch data, %d\n", __func__, event->touch_point);
+			return -1;
 	}
-	mutex_unlock(&ts->lock);
 #else
-    if (event->touch_points == 1) {
-    	event->x[0] = (s16)(buf[0x03] & 0x0F)<<8 | (s16)buf[0x04];
+	if (event->touch_point == 1) {
+		event->x[0] = (s16)(buf[0x03] & 0x0F)<<8 | (s16)buf[0x04];
 		event->y[0] = (s16)(buf[0x05] & 0x0F)<<8 | (s16)buf[0x06];
-		event->press[0] |= TOUCH_PRESS;
-		/* Add by jhkim */
-		ts_adjust_calibration(&event->x[0], &event->y[0]);
-    }
-#endif
-    return 0;
-}
-
-static void ft5x0x_ts_report(void)
-{
-	struct ft5x0x_ts_data *ts = i2c_get_clientdata(this_client);
-	struct ts_event *event = &ts->event;
-	int i = 0;
-
-	TS_DEBUG("ft5x0x_ts_report: ");
-#ifdef CONFIG_FT5X0X_MULTITOUCH
-	mutex_lock(&ts->lock);
-	for (i = 0; event->touch_points > i; i++) {
-		if (1 != event->st[i]) {
-			if (TOUCH_PRESS == event->press[i]) {
-				input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, event->press[i]);
-				event->press[i] |= TOUCH_PRESS;
-			}
-			event->press[i] |= TOUCH_PRESS;
-			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, event->ID[i]);
-			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, event->x[i]);
-			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, event->y[i]);
-			input_mt_sync(ts->input_dev);
-			TS_DEBUG("T%02d [ID %2d, x=%4d, y=%4d]\n", i, event->ID[i], event->x[i], event->y[i]);
-		} else {
-			TS_DEBUG("T%02d [ID %2d] release\n", i, event->ID[i]);
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
-			input_mt_sync(ts->input_dev);
-		}
 	}
-	input_sync(ts->input_dev);
-	mutex_unlock(&ts->lock);
-
-#else	/* CONFIG_FT5X0X_MULTITOUCH*/
-	if (event->touch_points == 1) {
-		input_report_abs(ts->input_dev, ABS_X, event->x[i]);
-		input_report_abs(ts->input_dev, ABS_Y, event->y[i]);
-		input_report_abs(ts->input_dev, ABS_PRESSURE, event->press[i]);
-	}
-	input_report_key(ts->input_dev, BTN_TOUCH, 1);
-	input_sync(ts->input_dev);
-#endif	/* CONFIG_FT5X0X_MULTITOUCH*/
-
-#if 1
-	TS_DEBUG1(" 1:(%4d, %4d)  2:(%4d, %4d)  3:(%4d, %4d)  4:(%4d, %4d)  5:(%4d, %4d)\n",
-		event->x[0], event->y[0], event->x[1], event->y[1], event->x[2], event->y[2],
-		event->x[3], event->y[3], event->x[4], event->y[4]);
-	TS_DEBUG1(" 6:(%4d, %4d)  7:(%4d, %4d)  8:(%4d, %4d)  9:(%4d, %4d) 10:(%4d, %4d)\n",
-		event->x[5], event->y[5], event->x[6], event->y[6], event->x[7], event->y[7],
-		event->x[8], event->y[8], event->x[9], event->y[9]);
 #endif
 
-}	/*end ft5x0x_ts_report*/
+	event->pressure = 200;
 
-static void ft5x0x_ts_event(struct work_struct *work)
-{
-	int ret = -1;
-	TS_DEBUG("ft5x0x_ts_event\n");
-	ret = ft5x0x_ts_value();
-	if (0 == ret)
-		ft5x0x_ts_report();
-	else
-		TS_DEBUG("ts package read error\n");
-
-	//enable_irq(this_client->irq);
+	return 0;
 }
 
-static irqreturn_t ft5x0x_ts_interrupt(int irq, void *dev_id)
-{
-	struct ft5x0x_ts_data *ft5x0x_ts = dev_id;
+static void ft5x0x_ts_pen_irq_work(struct work_struct *work) {
+	struct ft5x0x_ts_data *ts = container_of(work, struct ft5x0x_ts_data, work);
 
-	TS_DEBUG("[I]\n");
+	if (!ft5x0x_read_data(ts)) {
+		ft5x0x_ts_report(ts);
+	}
 
-  //disable_irq_nosync(irq);
-	queue_delayed_work(ft5x0x_ts->ts_work,
-		&ft5x0x_ts->event_work, DELAY_WORK_JIFFIES);
+	enable_irq(this_client->irq);
+}
+
+static irqreturn_t ft5x0x_ts_interrupt(int irq, void *dev_id) {
+	struct ft5x0x_ts_data *ts = dev_id;
+
+	disable_irq_nosync(this_client->irq);
+
+	if (!work_pending(&ts->work)) {
+		queue_work(ts->queue, &ts->work);
+	}
+
 	return IRQ_HANDLED;
 }
 
-static int
-ft5x0x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
+
+/*---------------------------------------------------------
+ * I2C client driver functions
+ */
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void ft5x0x_ts_suspend(struct early_suspend *handler)
 {
+#if 0
+	struct ft5x0x_ts_data *ts;
+
+	ts = container_of(handler, struct ft5x0x_ts_data, early_suspend);
+
+	disable_irq(this_client->irq);
+	cancel_work_sync(&ts->work);
+	flush_workqueue(ts->queue);
+
+	ft5x0x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
+#endif
+
+	printk("ft5x0x_ts: suspended\n");
+}
+
+static void ft5x0x_ts_resume(struct early_suspend *handler)
+{
+#if 0
+	/* Wakeup: output_L --> 100ms --> output_H --> 100ms */
+	enable_irq(this_client->irq);
+#endif
+
+	printk("ft5x0x_ts: resumed\n");
+}
+#endif
+
+static int ft5x0x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
+{
+	struct ft5x0x_i2c_platform_data *pdata;
 	struct ft5x0x_ts_data *ts;
 	struct input_dev *input_dev;
-	int err = 0;
+	unsigned char val;
+	unsigned int ctp_id;
+	int err = -EINVAL;
 
-	TS_DEBUG("ft5x0x_ts_probe\n");
+	ctp_id = board_get_ctp();
+	if (ctp_id != CTP_FT5X06 && ctp_id != CTP_AUTO) {
+		return -ENODEV;
+	}
+
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		err = -ENODEV;
 		goto exit_check_functionality_failed;
 	}
 
 	ts = kzalloc(sizeof(*ts), GFP_KERNEL);
-	if (!ts)	{
+	if (!ts) {
 		err = -ENOMEM;
 		goto exit_alloc_data_failed;
 	}
 
+	pdata = client->dev.platform_data;
+	if (!pdata) {
+		dev_err(&client->dev, "failed to get platform data\n");
+		goto exit_no_pdata;
+	}
+
+	ts->screen_max_x = pdata->screen_max_x;
+	ts->screen_max_y = pdata->screen_max_y;
+	ts->pressure_max = pdata->pressure_max;
+
+	ts->gpio_irq = pdata->gpio_irq;
+	if (ts->gpio_irq != -EINVAL) {
+#if defined(CONFIG_PLAT_SAMSUNG)
+		client->irq = gpio_to_irq(ts->gpio_irq);
+#else
+		client->irq = ts->gpio_irq;
+#endif
+	} else {
+		goto exit_no_pdata;
+	}
+#if defined(CONFIG_PLAT_SAMSUNG)
+	if (pdata->irq_cfg) {
+		s3c_gpio_cfgpin(ts->gpio_irq, pdata->irq_cfg);
+		s3c_gpio_setpull(ts->gpio_irq, S3C_GPIO_PULL_NONE);
+	}
+#endif
+
+	ts->gpio_wakeup = pdata->gpio_wakeup;
+	ts->gpio_reset = pdata->gpio_reset;
+
+	INIT_WORK(&ts->work, ft5x0x_ts_pen_irq_work);
 	this_client = client;
 	i2c_set_clientdata(client, ts);
 
-	INIT_DELAYED_WORK(&ts->event_work, ft5x0x_ts_event);
-	ts->ts_work = create_singlethread_workqueue(dev_name(&client->dev));
-	if (!ts->ts_work) {
+	ts->queue = create_singlethread_workqueue(dev_name(&client->dev));
+	if (!ts->queue) {
 		err = -ESRCH;
 		goto exit_create_singlethread;
-	}
-	mutex_init(&ts->lock);
-
-	err = request_irq(client->irq, ft5x0x_ts_interrupt,
-				IRQF_DISABLED | IRQF_TRIGGER_FALLING, "ft5x0x_ts", ts);
-	if (err < 0) {
-		dev_err(&client->dev, "ft5x0x_probe: request irq failed\n");
-		goto exit_irq_request_failed;
 	}
 
 	input_dev = input_allocate_device();
@@ -614,103 +428,133 @@ ft5x0x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	ts->input_dev = input_dev;
 
+	set_bit(EV_SYN, input_dev->evbit);
+	set_bit(EV_ABS, input_dev->evbit);
+	set_bit(EV_KEY, input_dev->evbit);
+
 #ifdef CONFIG_FT5X0X_MULTITOUCH
+	set_bit(ABS_MT_TRACKING_ID, input_dev->absbit);
+	set_bit(ABS_MT_TOUCH_MAJOR, input_dev->absbit);
+	set_bit(ABS_MT_WIDTH_MAJOR, input_dev->absbit);
+	set_bit(ABS_MT_POSITION_X, input_dev->absbit);
+	set_bit(ABS_MT_POSITION_Y, input_dev->absbit);
 
-    set_bit(EV_ABS, input_dev->evbit);
-
-    input_set_abs_params(input_dev, ABS_MT_POSITION_X , 0, SCREEN_MAX_X-1, 0, 0);
-    input_set_abs_params(input_dev, ABS_MT_POSITION_Y , 0, SCREEN_MAX_Y-1, 0, 0);
-    input_set_abs_params(input_dev, ABS_MT_TOUCH_MAJOR, 0, PRESS_MAX, 0, 0);
-	input_set_abs_params(input_dev, ABS_MT_PRESSURE, 0, 255, 0, 0);
+	input_set_abs_params(input_dev, ABS_MT_POSITION_X, 0, ts->screen_max_x, 0, 0);
+	input_set_abs_params(input_dev, ABS_MT_POSITION_Y, 0, ts->screen_max_y, 0, 0);
+	input_set_abs_params(input_dev, ABS_MT_TOUCH_MAJOR, 0, ts->pressure_max, 0, 0);
+	input_set_abs_params(input_dev, ABS_MT_WIDTH_MAJOR, 0, 200, 0, 0);
+	input_set_abs_params(input_dev, ABS_MT_TRACKING_ID, 0, FT5X0X_PT_MAX, 0, 0);
 #else
 	set_bit(ABS_X, input_dev->absbit);
 	set_bit(ABS_Y, input_dev->absbit);
 	set_bit(ABS_PRESSURE, input_dev->absbit);
 	set_bit(BTN_TOUCH, input_dev->keybit);
 
-	input_set_abs_params(input_dev, ABS_X, 0, SCREEN_MAX_X, 0, 0);
-	input_set_abs_params(input_dev, ABS_Y, 0, SCREEN_MAX_Y, 0, 0);
-	input_set_abs_params(input_dev, ABS_PRESSURE, 0, PRESS_MAX, 0 , 0);
-
-	set_bit(EV_ABS, input_dev->evbit);
-	set_bit(EV_KEY, input_dev->evbit);
+	input_set_abs_params(input_dev, ABS_X, 0, ts->screen_max_x, 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, 0, ts->screen_max_y, 0, 0);
+	input_set_abs_params(input_dev, ABS_PRESSURE, 0, ts->pressure_max, 0 , 0);
 #endif
 
-	input_dev->name = FT5X0X_NAME;		//dev_name(&client->dev)
+	input_dev->name = FT5X0X_NAME;
+	input_dev->phys = "input(mt)";
+	input_dev->id.bustype = BUS_I2C;
+	input_dev->id.vendor = 0x12FA;
+	input_dev->id.product = 0x2143;
+	input_dev->id.version = 0x0100;
+
 	err = input_register_device(input_dev);
 	if (err) {
-		dev_err(&client->dev,
-		"ft5x0x_ts_probe: failed to register input device: %s\n",
-		dev_name(&client->dev));
-		goto exit_input_register_device_failed;
+		input_free_device(input_dev);
+		dev_err(&client->dev, "failed to register input device %s, %d\n",
+				dev_name(&client->dev), err);
+		goto exit_input_dev_alloc_failed;
 	}
 
-	/* Add by jhkim */
-	ts_setup_calibration(client);
+	msleep(3);
+	err = ft5x0x_read_fw_ver(&val);
+	if (err < 0) {
+		dev_err(&client->dev, "chip not found\n");
+		goto exit_irq_request_failed;
+	}
 
-	printk("touch: ft5x0x support %d point \n", ts->touch_point_max);
-    return 0;
+	err = request_irq(client->irq, ft5x0x_ts_interrupt,
+			IRQ_TYPE_EDGE_FALLING /*IRQF_TRIGGER_FALLING*/, "ft5x0x_ts", ts);
+	if (err < 0) {
+		dev_err(&client->dev, "Request IRQ %d failed, %d\n", client->irq, err);
+		goto exit_irq_request_failed;
+	}
 
-exit_input_register_device_failed:
-	input_free_device(input_dev);
-exit_input_dev_alloc_failed:
-	free_irq(client->irq, ts);
+	disable_irq(client->irq);
+
+	dev_info(&client->dev, "Firmware version 0x%02x\n", val);
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	ts->early_suspend.suspend = ft5x0x_ts_suspend;
+	ts->early_suspend.resume = ft5x0x_ts_resume;
+	register_early_suspend(&ts->early_suspend);
+#endif
+
+	enable_irq(client->irq);
+
+	board_set_ctp(CTP_FT5X06);
+	dev_info(&client->dev, "FocalTech ft5x0x TouchScreen initialized\n");
+	return 0;
+
 exit_irq_request_failed:
-	cancel_work_sync(&ts->event_work.work);
-	destroy_workqueue(ts->ts_work);
+	input_unregister_device(input_dev);
+
+exit_input_dev_alloc_failed:
+	cancel_work_sync(&ts->work);
+	destroy_workqueue(ts->queue);
+
 exit_create_singlethread:
 	i2c_set_clientdata(client, NULL);
+
+exit_no_pdata:
 	kfree(ts);
+
 exit_alloc_data_failed:
 exit_check_functionality_failed:
+	dev_err(&client->dev, "probe ft5x0x TouchScreen failed, %d\n", err);
+
 	return err;
 }
 
-static int __devexit ft5x0x_ts_remove(struct i2c_client *client)
-{
+static int __devexit ft5x0x_ts_remove(struct i2c_client *client) {
 	struct ft5x0x_ts_data *ts = i2c_get_clientdata(client);
-	TS_DEBUG("ft5x0x_ts_remove\n");
 
-	/* Add by jhkim */
-	ts_release_calibration(client);
-
-	free_irq(client->irq, ts);
-	input_unregister_device(ts->input_dev);
-	kfree(ts);
-	cancel_work_sync(&ts->event_work.work);
-	destroy_workqueue(ts->ts_work);
-	i2c_set_clientdata(client, NULL);
-	return 0;
-}
-
-#ifdef CONFIG_PM
-static int ft5x0x_ts_suspend(struct i2c_client *client, pm_message_t mesg)
-{
-	PM_DBGOUT("%s\n", __func__);
-	return 0;
-}
-
-static int ft5x0x_ts_resume(struct i2c_client *client)
-{
-	PM_DBGOUT("%s\n", __func__);
-	return 0;
-}
-
-#else
-#define ft5x0x_ts_suspend		NULL
-#define ft5x0x_ts_resume		NULL
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&ts->early_suspend);
 #endif
 
+	if (client->irq) {
+		free_irq(client->irq, ts);
+	}
+
+	cancel_work_sync(&ts->work);
+	destroy_workqueue(ts->queue);
+
+	i2c_set_clientdata(client, NULL);
+	input_unregister_device(ts->input_dev);
+	if (ts->input_dev)
+		kfree(ts->input_dev);
+
+	kfree(ts);
+
+	return 0;
+}
+
 static const struct i2c_device_id ft5x0x_ts_id[] = {
-	{ FT5X0X_NAME, 0 },{ }
+	{ FT5X0X_NAME, 0 },
+	{ }
 };
+
 MODULE_DEVICE_TABLE(i2c, ft5x0x_ts_id);
 
 static struct i2c_driver ft5x0x_ts_driver = {
 	.probe		= ft5x0x_ts_probe,
 	.remove		= __devexit_p(ft5x0x_ts_remove),
-   	.suspend  	= ft5x0x_ts_suspend,
-	.resume   	= ft5x0x_ts_resume,
 	.id_table	= ft5x0x_ts_id,
 	.driver	= {
 		.name	= FT5X0X_NAME,
@@ -734,5 +578,4 @@ module_exit(ft5x0x_ts_exit);
 MODULE_AUTHOR("<wenfs@Focaltech-systems.com>");
 MODULE_DESCRIPTION("FocalTech ft5x0x TouchScreen driver");
 MODULE_LICENSE("GPL");
-
 

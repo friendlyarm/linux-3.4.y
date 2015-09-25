@@ -870,12 +870,13 @@ config TOUCHSCREEN_FT5X0X
 
 	  If unsure, say N.
 
-config FT5X0X_MULTITOUCH
-	bool "FocalTech ft5x0x touchscreen multi-touch support"
+config TOUCHSCREEN_FT5X0X_SINGLE
+	bool "Disable MULTI-Touch Mode"
 	depends on TOUCHSCREEN_FT5X0X
 	default n
 	help
-	  Say Y here To enable multitouch on Focaltech Touchscreens(required for most).
+	  Say Y here to disable multi-touch mode for Debian, Ubuntu, QT.
+
 	  If unsure, say N.
 
 config TOUCHSCREEN_AW5306

@@ -26,6 +26,7 @@
 #include <linux/platform_device.h>
 #include <linux/power_supply.h>
 #include <linux/irq.h>
+#include <linux/i2c.h>
 #include <linux/amba/pl022.h>
 
 /* nexell soc headers */
@@ -353,13 +354,31 @@ static struct platform_device nand_plat_device = {
  * Touch screen
  */
 #if defined(CONFIG_TOUCHSCREEN_GSLX680)
-#include <linux/i2c.h>
 #define	GSLX680_I2C_BUS		(1)
 
 static struct i2c_board_info __initdata gslX680_i2c_bdi = {
 	.type	= "gslX680",
 	.addr	= (0x40),
 	.irq	= PB_PIO_IRQ(CFG_IO_TOUCH_PENDOWN_DETECT),
+};
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_FT5X0X)
+#include <linux/platform_data/ft5x0x_touch.h>
+
+#define	FT5X0X_I2C_BUS		(2)
+
+static struct ft5x0x_i2c_platform_data ft5x0x_pdata = {
+	.gpio_irq		= PB_PIO_IRQ(CFG_IO_TOUCH_IRQ),
+	.irq_cfg		= 0,
+	.screen_max_x	= 1280,
+	.screen_max_y	= 800,
+	.pressure_max	= 255,
+};
+
+static struct i2c_board_info __initdata ft5x0x_i2c_bdi = {
+	I2C_BOARD_INFO("ft5x0x_ts", (0x70 >> 1)),
+	.platform_data = &ft5x0x_pdata,
 };
 #endif
 
@@ -412,8 +431,6 @@ static struct platform_device spdif_trans_dai = {
 #endif
 
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
-#include <linux/i2c.h>
-
 #define	ES8316_I2C_BUS		(0)
 
 /* CODEC */
@@ -449,8 +466,6 @@ static struct platform_device es8316_dai = {
  * G-Sensor platform device
  */
 #if defined(CONFIG_SENSORS_MMA865X) || defined(CONFIG_SENSORS_MMA865X_MODULE)
-#include <linux/i2c.h>
-
 #define	MMA865X_I2C_BUS		(2)
 
 /* CODEC */
@@ -461,8 +476,6 @@ static struct i2c_board_info __initdata mma865x_i2c_bdi = {
 #endif /* CONFIG_SENSORS_MMA865X */
 
 #if defined(CONFIG_SENSORS_STK831X) || defined(CONFIG_SENSORS_STK831X_MODULE)
-#include <linux/i2c.h>
-
 #define	STK831X_I2C_BUS		(2)
 
 /* CODEC */
@@ -582,11 +595,9 @@ static struct platform_device fixed_supply_dummy_device = {
  * v4l2 platform device
  */
 #if defined(CONFIG_V4L2_NXP) || defined(CONFIG_V4L2_NXP_MODULE)
-#include <linux/i2c.h>
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
 #include <mach/nxp-v4l2-platformdata.h>
-#include <mach/soc.h>
 
 static int camera_common_set_clock(ulong clk_rate)
 {
@@ -1293,6 +1304,13 @@ void __init nxp_board_devices_register(void)
 #if defined(CONFIG_TOUCHSCREEN_GSLX680)
 	printk("plat: add touch(gslX680) device\n");
 	i2c_register_board_info(GSLX680_I2C_BUS, &gslX680_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_FT5X0X)
+	printk("plat: add touch(ft5x0x) device\n");
+	ft5x0x_pdata.screen_max_x = lcd->width;
+	ft5x0x_pdata.screen_max_y = lcd->height;
+	i2c_register_board_info(FT5X0X_I2C_BUS, &ft5x0x_i2c_bdi, 1);
 #endif
 
 #if defined(CONFIG_SENSORS_MMA865X) || defined(CONFIG_SENSORS_MMA865X_MODULE)
