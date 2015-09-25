@@ -737,33 +737,39 @@ config I2C_NXP
 
 config I2C_NXP_PORT0
 	bool "Port 0"
-	depends on  I2C_NXP || I2C_SLSI 
-		default y
+	depends on  I2C_NXP || I2C_SLSI
+	default y
 
 config I2C_NXP_PORT0_GPIO_MODE
 	bool "Gpio Mode"
 	depends on (I2C_NXP || I2C_SLSI) && I2C_GPIO && I2C_NXP_PORT0
-		default n
+	default n
 
 config I2C_NXP_PORT1
 	bool "Port 1"
 	depends on I2C_NXP || I2C_SLSI
-		default n
+	default n
 
 config I2C_NXP_PORT1_GPIO_MODE
 	bool "Gpio Mode"
 	depends on (I2C_NXP || I2C_SLSI) && I2C_GPIO && I2C_NXP_PORT1
-		default n
+	default n
 
 config I2C_NXP_PORT2
 	bool "Port 2"
 	depends on I2C_NXP || I2C_SLSI
-		default n
+	default n
 
 config I2C_NXP_PORT2_GPIO_MODE
 	bool "Gpio Mode"
 	depends on (I2C_NXP || I2C_SLSI) && I2C_GPIO && I2C_NXP_PORT2
-		default n
+	default n
+
+config I2C_NXP_PORT3
+	bool "Port 3"
+	depends on  I2C_NXP || I2C_SLSI
+	default n
+
 comment "External I2C/SMBus adapter drivers"
 
 config I2C_DIOLAN_U2C
