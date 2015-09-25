@@ -421,7 +421,7 @@ EXPORT_SYMBOL(nanopi2_get_lcd_res);
 
 #if defined(CONFIG_TOUCHSCREEN_GOODIX) || defined(CONFIG_TOUCHSCREEN_FT5X0X) || \
 	defined(CONFIG_TOUCHSCREEN_1WIRE)
-#include <plat/ctouch.h>
+#include <linux/platform_data/ctouch.h>
 
 static unsigned int ctp_type = CTP_AUTO;
 
