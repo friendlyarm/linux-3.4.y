@@ -537,8 +537,42 @@ static struct platform_device *i2c_devices[] = {
 /*------------------------------------------------------------------------------
  * PMIC platform device
  */
-#if defined(CONFIG_REGULATOR_NXE2000)
+#if defined(CONFIG_REGULATOR_FIXED_VOLTAGE)
+#include <linux/regulator/machine.h>
+#include <linux/regulator/fixed.h>
 
+/* Dummy supplies */
+static struct regulator_consumer_supply fixed_dummy_supplies[] = {
+	REGULATOR_SUPPLY("vdd_arm_1.3V", NULL),
+	REGULATOR_SUPPLY("vdd_ddr_1.6V", NULL),
+};
+
+struct regulator_init_data fixed_dummy_initdata = {
+	.consumer_supplies	= fixed_dummy_supplies,
+	.num_consumer_supplies	= ARRAY_SIZE(fixed_dummy_supplies),
+	.constraints	= {
+		.always_on	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_STATUS,
+	},
+};
+
+static struct fixed_voltage_config fixed_dummy_config = {
+	.supply_name	= "fixed_vdds",
+	.microvolts	= 1350000,
+	.gpio		= -EINVAL,
+	.init_data	= &fixed_dummy_initdata,
+};
+
+static struct platform_device fixed_supply_dummy_device = {
+	.name		= "reg-fixed-voltage",
+	.id		= 0,
+	.dev		= {
+		.platform_data	= &fixed_dummy_config,
+	},
+};
+#endif  /* CONFIG_REGULATOR_FIXED_VOLTAGE */
+
+#if defined(CONFIG_REGULATOR_NXE2000)
 #include <linux/i2c.h>
 #include <linux/regulator/machine.h>
 #include <linux/mfd/nxe2000.h>
@@ -1580,6 +1614,11 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_I2C_NXP_PORT3)
 	platform_add_devices(i2c_devices, ARRAY_SIZE(i2c_devices));
+#endif
+
+#if defined(CONFIG_REGULATOR_FIXED_VOLTAGE)
+	printk("plat: add device fixed voltage\n");
+	platform_device_register(&fixed_supply_dummy_device);
 #endif
 
 #if defined(CONFIG_REGULATOR_NXE2000)
