@@ -202,7 +202,11 @@ static struct platform_device dm9000_plat_device = {
 static struct nxp_fb_plat_data fb0_plat_data = {
 	.module			= CONFIG_FB0_NXP_DISPOUT,
 	.layer			= CFG_DISP_PRI_SCREEN_LAYER,
+	#ifdef CONFIG_FB_NXP_X8R8G8B8
+	.format			= MLC_RGBFMT_X8R8G8B8,
+	#else
 	.format			= CFG_DISP_PRI_SCREEN_RGB_FORMAT,
+	#endif
 	.bgcolor		= CFG_DISP_PRI_BACK_GROUND_COLOR,
 	.bitperpixel	= CFG_DISP_PRI_SCREEN_PIXEL_BYTE * 8,
 	.x_resol		= CFG_DISP_PRI_RESOL_WIDTH,
