@@ -9,4 +9,5 @@ obj-$(CONFIG_ION_NXP)			+= dev-ion.o
 obj-$(CONFIG_USB_CONNECT_NXP_DRV)	+= usb-connector.o
 obj-y					+= lcds.o
 obj-y					+= wifi_pm.o
+obj-y					+= bt_bcm.o
 
