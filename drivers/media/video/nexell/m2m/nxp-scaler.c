@@ -214,7 +214,10 @@ static void _hw_cleanup(struct nxp_scaler *me)
 #ifdef SIMULATION_SCALER
     del_timer_sync(&me->timer);
 #else
-    free_irq(me->irq, me);
+    if (me->irq_alive) {
+        me->irq_alive = false;
+        free_irq(me->irq, me);
+    }
 
     NX_SCALER_Stop(0);
     NX_SCALER_SetInterruptEnableAll(0, CFALSE);
@@ -971,6 +974,7 @@ static int nxp_scaler_s_power(struct v4l2_subdev *sd, int on)
             pr_err("%s: failed to request_irq()\n", __func__);
             return ret;
         }
+        me->irq_alive = true;
 #endif
         _hw_set_filter_table(me, &_default_filter_table);
     } else {
@@ -1634,6 +1638,7 @@ static int nxp_scaler_misc_open(struct inode *inode, struct file *file)
         pr_err("%s: failed to request_irq()\n", __func__);
         return ret;
     }
+    me->irq_alive = true;
     NXP_ATOMIC_INC(&me->open_count);
     vmsg("%s: exit\n", __func__);
     return 0;

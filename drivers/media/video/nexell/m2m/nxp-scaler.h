@@ -58,6 +58,7 @@ struct nxp_scaler {
     struct nxp_video *video;
 
     int irq;
+    bool irq_alive;
 
     bool streaming;
 
