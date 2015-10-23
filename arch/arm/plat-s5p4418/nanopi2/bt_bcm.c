@@ -1,4 +1,7 @@
 /*
+ * Copyright (C) Guangzhou FriendlyARM Computer Tech. Co., Ltd.
+ * (http://www.friendlyarm.com)
+ *
  * (C) Copyright 2009
  * jung hyun kim, Nexell Co, <jhkim@nexell.co.kr>
  *
@@ -38,19 +41,16 @@
 #include "bt_bcm.h"
 
 
-#define	BT_GPIO_REG_ON			(PAD_GPIO_B + 8)
-#define	BT_GPIO_WAKE_DEVICE 	(-1)
-#define	BT_GPIO_WAKE_HOST 		(-1)
+#define BT_GPIO_REG_ON			CFG_BT_RST_N
+#define BT_GPIO_WAKE_DEVICE		(-1)
+#define BT_GPIO_WAKE_HOST		(-1)
 
-#define	BT_UART_PORT_LINE		(1)	/* ttyAMA1 */
+#define BT_UART_PORT_LINE		(1)	/* ttyAMA1 */
 
-#define	UART1_RTS_IO_NUM		(PAD_GPIO_C + 6)
-#define	UART1_RTS_ALT_RTS		2
-#define	UART1_RTS_ALT_IO		1
+#define UART1_RTS_IO_NUM		(PAD_GPIO_C + 6)
+#define UART1_RTS_ALT_RTS		2
+#define UART1_RTS_ALT_IO		1
 
-//#define	SUPPOR_BT_BCM_LPM
-
-//extern int micom_bt_cmd(int sub, int on);
 
 /*
  * Bluetooth BCM platform data
@@ -83,90 +83,41 @@ static struct bt_ctl_gpio bt_gpios[] = {
 };
 
 static struct plat_bt_bcm_data bt_plat_data = {
-	.gpios 	 = bt_gpios,
+	.gpios	 = bt_gpios,
 	.gpio_nr = ARRAY_SIZE(bt_gpios),
 };
 
 static const char *ioname[] = { "GPIOA", "GPIOB", "GPIOC", "GPIOD", "GPIOE", "ALIVE" };
-#define	STR_GR(n)	(ioname[n/32])
-#define	BIT_NR(n)	(n&0x1F)
-
-#define	BTI_TYPE(_bti_, _type_, _bcm_)	{	\
-		int i; _bti_ = _bcm_->gpios;			\
-		for (i = 0; _bcm_->gpio_nr > i; i++, _bti_++) {	\
-			if (_type_ == _bti_->type) break;			\
-		}												\
-		if (_bcm_->gpio_nr == i) _bti_ = NULL;			\
-		}
+#define STR_GR(n)	(ioname[n/32])
+#define BIT_NR(n)	(n&0x1F)
 
 /*
  * Check uart data transfer
  */
 static inline int bt_bcm_request_io(struct bt_ctl_gpio *bti)
 {
-	int ret = 0;
-
-	if(bti->gpio > -1)
-		ret = gpio_request(bti->gpio, bti->name);
-
-	return ret;
+	return gpio_request(bti->gpio, bti->name);
 }
 
 static inline void bt_bcm_free_io(struct bt_ctl_gpio *bti)
 {
-	if(bti->gpio > -1)
-		gpio_free(bti->gpio);
+	gpio_free(bti->gpio);
 }
 
 static inline int bt_bcm_set_direction(struct bt_ctl_gpio *bti, int dir, int val)
 {
-	int ret = 0;
-
-	if(bti->gpio > -1)
-	{
-		if (dir)
-			ret = gpio_direction_output(bti->gpio, val);
-		else
-			ret = gpio_direction_input(bti->gpio);
-	}
-	return ret;
+	if (dir)
+		return gpio_direction_output(bti->gpio, val);
+	else
+		return gpio_direction_input(bti->gpio);
 }
 
-static  void bt_bcm_set_io_val(struct bt_ctl_gpio *bti, int on)
+static void bt_bcm_set_io_val(struct bt_ctl_gpio *bti, int on)
 {
-	int sub;
+	pr_debug("bt_bcm: %s.%d = %d\n",
+		STR_GR(bti->gpio), BIT_NR(bti->gpio), on);
 
-	pr_debug("[pchen***]bt_bcm: bt_bcm_set_io_val (%s.%d) [%s]\n",
-		STR_GR(bti->gpio), BIT_NR(bti->gpio), on?"on":"off");
-
-	if(bti->gpio > -1)
-	{
-//		gpio_set_value(bti->gpio, (on ? 1: 0));
-		gpio_direction_output(bti->gpio, (on ? 1: 0));
-/*		if(on){
-//			gpio_direction_output(bti->gpio, 0);
-//			msleep(100);
-			gpio_direction_output(bti->gpio, 1);
-//			msleep(100);
-		}else{
-			gpio_direction_output(bti->gpio, 0);
-//			msleep(10);
-		}*/
-	}else{
-		switch (bti->type)
-		{
-			case BT_TYPE_POWER:	
-				sub = BT_TYPE_POWER;
-				break;
-			case BT_TYPE_WAKE_DEVICE:
-				sub = BT_TYPE_WAKE_DEVICE;
-				break;
-			default:
-				pr_err("bt_bcm: unkonwn bt control type ...\n");
-				return;
-		}		
-//		micom_bt_cmd(sub, on);
-	}
+	gpio_direction_output(bti->gpio, on);
 }
 
 static inline int bt_bcm_get_io_val(struct bt_ctl_gpio *bti)
@@ -174,7 +125,7 @@ static inline int bt_bcm_get_io_val(struct bt_ctl_gpio *bti)
 	return gpio_get_value(bti->gpio);
 }
 
-static void bt_bcm_rts_ctrl(int flag)
+static inline void bt_bcm_rts_ctrl(int flag)
 {
 	if (flag) {
 		/* BT RTS Set to HIGH */
@@ -188,8 +139,23 @@ static void bt_bcm_rts_ctrl(int flag)
 	}
 }
 
+static struct bt_ctl_gpio *bt_bcm_lookup_pin(struct bt_bcm_info *bcm,
+		enum bt_ctl_type type)
+{
+	struct bt_ctl_gpio *bti = bcm->gpios;
+	int i;
+
+	for (i = 0; i < bcm->gpio_nr; i++, bti++) {
+		if (bti->type == type)
+			return bti;
+	}
+
+	return NULL;
+}
+
 #if defined (SUPPOR_BT_BCM_LPM)
 static struct bt_bcm_lpm *__bt_lpm = NULL;
+
 static void bt_bcm_lpm_wake_dev(struct bt_bcm_info *bcm, int wake)
 {
 	struct bt_bcm_lpm *lpm = &bcm->lpm;
@@ -198,8 +164,8 @@ static void bt_bcm_lpm_wake_dev(struct bt_bcm_info *bcm, int wake)
 	if (wake == lpm->wake)
 		return;
 
-	BTI_TYPE(btd, BT_TYPE_WAKE_DEVICE, bcm);
-	if (NULL == btd)
+	btd = bt_bcm_lookup_pin(bcm, BT_TYPE_WAKE_DEVICE);
+	if (!btd)
 		return;
 
 	lpm->wake = wake;
@@ -225,7 +191,7 @@ static enum hrtimer_restart bt_bcm_lpm_timer_func(struct hrtimer *timer)
 	return HRTIMER_NORESTART;
 }
 
-#define	NX_UART_CH_INIT(ch) do { \
+#define NX_UART_CH_INIT(ch) do {	\
 	struct clk *clk;									\
 	char name[16];										\
 	sprintf(name, "nxp-uart.%d", ch);					\
@@ -237,7 +203,7 @@ static enum hrtimer_restart bt_bcm_lpm_timer_func(struct hrtimer *timer)
 		nxp_soc_rsc_reset(RESET_ID_UART## ch);			\
 	}													\
 	clk_set_rate(clk, CFG_UART_CLKGEN_CLOCK_HZ);		\
-	clk_enable(clk);								\
+	clk_enable(clk);									\
 	} while (0)
 
 void pl011_uart1_prepare(void)
@@ -257,10 +223,10 @@ void pl011_uart1_wake_peer(void *uport)
 	struct uart_port *port = uport;
 	struct bt_bcm_lpm *lpm = __bt_lpm;
 	struct bt_bcm_info *bcm = container_of(lpm, struct bt_bcm_info, lpm);
-	
+
 	pr_debug("bt_bcm: lpm uart.%d trans [%s]\n", port->line,
 		bcm->running?"run":"stopped");
-	
+
 	if (BT_UART_PORT_LINE != port->line) {
 		pr_debug("bt_bcm: Error UART.%d is not BT UART.%d\n", port->line, BT_UART_PORT_LINE);
 		return;
@@ -286,7 +252,7 @@ static void bt_bcm_lpm_wake_lock(struct bt_bcm_lpm *lpm, int host_wake)
 
 	if (host_wake) {
 		wake_lock(&lpm->host_wake_lock);
-	} else  {
+	} else {
 		/* Take a timed wakelock, so that upper layers can take it.
 		 * The chipset deasserts the hostwake lock, when there is no
 		 * more data to send.
@@ -299,11 +265,11 @@ static irqreturn_t bt_bcm_lpm_wake_intr(int irq, void *dev)
 {
 	struct bt_bcm_info *bcm = dev;
 	struct bt_bcm_lpm *lpm = &bcm->lpm;
-	struct bt_ctl_gpio *bth = bcm->gpios;
+	struct bt_ctl_gpio *bth;
 	int host_wake;
 
-	BTI_TYPE(bth, BT_TYPE_WAKE_HOST, bcm);
-	if (NULL == bth)
+	bth = bt_bcm_lookup_pin(bcm, BT_TYPE_WAKE_HOST);
+	if (!bth)
 		return IRQ_HANDLED;
 
 	host_wake = bt_bcm_get_io_val(bth);
@@ -324,14 +290,14 @@ static int bt_bcm_lpm_host_wake(struct bt_bcm_info *bcm)
 	struct bt_ctl_gpio *bth;
 	int ret;
 
-	BTI_TYPE(bth, BT_TYPE_WAKE_HOST, bcm);
-	if (NULL == bth)
+	bth = bt_bcm_lookup_pin(bcm, BT_TYPE_WAKE_HOST);
+	if (bth)
 		return -EINVAL;
 
 	ret = request_irq(gpio_to_irq(bth->gpio), bt_bcm_lpm_wake_intr,
 				IRQF_SHARED | IRQ_TYPE_EDGE_BOTH, "bt host wake", bcm);
-	if (0 > ret) {
-		pr_err("bt_bcm: failed request irq.%d (%s.%d)...\n",
+	if (ret < 0) {
+		pr_err("bt_bcm: failed request irq.%d (%s.%d) for host wake\n",
 			gpio_to_irq(bth->gpio), STR_GR(bth->gpio), BIT_NR(bth->gpio));
 		return ret;
 	}
@@ -344,14 +310,14 @@ static int bt_bcm_lpm_init(struct bt_bcm_info *bcm)
 {
 	struct bt_bcm_lpm *lpm = &bcm->lpm;
 	struct bt_ctl_gpio *bth;
- 	int ret = 0;
+	int ret = 0;
 
 	hrtimer_init(&lpm->lpm_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	lpm->lpm_delay = ktime_set(3, 0);
 	lpm->lpm_timer.function = bt_bcm_lpm_timer_func;
 	lpm->host_wake = 0;
 
-	BTI_TYPE(bth, BT_TYPE_WAKE_HOST, bcm);
+	bth = bt_bcm_lookup_pin(bcm, BT_TYPE_WAKE_HOST);
 	if (bth)
 		bt_bcm_lpm_host_wake(bcm);
 
@@ -367,7 +333,7 @@ static void bt_bcm_lpm_exit(struct bt_bcm_info *bcm)
 	struct bt_bcm_lpm *lpm = &bcm->lpm;
 	struct bt_ctl_gpio *bth;
 
-	BTI_TYPE(bth, BT_TYPE_WAKE_HOST, bcm);
+	bth = bt_bcm_lookup_pin(bcm, BT_TYPE_WAKE_HOST);
 	if (bth) {
 		free_irq(gpio_to_irq(bth->gpio), bcm);
 		wake_lock_destroy(&lpm->host_wake_lock);
@@ -377,46 +343,38 @@ static void bt_bcm_lpm_exit(struct bt_bcm_info *bcm)
 	hrtimer_try_to_cancel(&lpm->lpm_timer);
 	//wake_lock_destroy(&lpm->wake_lock);
 }
-
-#endif /*  SUPPOR_BT_BCM_LPM */
+#endif /* SUPPOR_BT_BCM_LPM */
 
 /*
- * Bluetooth BCM Rfkill
+ * Bluetooth BCM rfkill
  */
 static int bt_bcm_rfkill_set_block(void *data, bool blocked)
 {
 	struct bt_bcm_info *bcm = data;
 	struct bt_ctl_gpio *btp;
 
-	if (NULL == bcm) {
-		pr_err("bt_bcm: Failed %s, no data...\n", __func__);
+	if (!bcm) {
+		pr_err("bt_bcm: failed to set block for NULL data\n");
 		return -EINVAL;
 	}
 
-	BTI_TYPE(btp, BT_TYPE_POWER, bcm);
-	if (NULL == btp)
+	btp = bt_bcm_lookup_pin(bcm, BT_TYPE_POWER);
+	if (!btp)
 		return -EINVAL;
 
 	pr_info("bt_bcm: rfkill set_block %s %s.%d\n",
 		blocked?"Off":"On ", STR_GR(btp->gpio), BIT_NR(btp->gpio));
-		
+
 	msleep(10);
 
 	if (!blocked) {
-//		nxp_soc_gpio_set_io_pull_enb(PAD_GPIO_D + 20, 0);
-//		nxp_soc_gpio_set_io_pull_sel(PAD_GPIO_D + 20, 0);
 		bt_bcm_set_io_val(btp, 1);	/* on */
-//		msleep(100);
-//		nxp_soc_gpio_set_io_pull_enb(PAD_GPIO_D + 20, 1);
-//		nxp_soc_gpio_set_io_pull_sel(PAD_GPIO_D + 20, 0);
 		bcm->running = true;
 	} else {
-//		nxp_soc_gpio_set_io_pull_enb(PAD_GPIO_D + 20, 1);
-//		nxp_soc_gpio_set_io_pull_sel(PAD_GPIO_D + 20, 0);
 		bt_bcm_set_io_val(btp, 0);	/* off */
 		bcm->running = false;
 	}
-	
+
 	msleep(50);
 	return 0;
 }
@@ -425,87 +383,19 @@ static int bt_bcm_rfkill_set_block(void *data, bool blocked)
 static int bt_bcm_rfkill_suspend(struct platform_device *pdev, pm_message_t state)
 {
 #if defined (SUPPOR_BT_BCM_LPM)
-	struct bt_bcm_lpm *lpm = __bt_lpm;   
+	struct bt_bcm_lpm *lpm = __bt_lpm;
 
 	nxp_soc_gpio_set_io_func(UART1_RTS_IO_NUM, UART1_RTS_ALT_IO);
 	nxp_soc_gpio_set_io_dir (UART1_RTS_IO_NUM, 1);
 	nxp_soc_gpio_set_out_value(UART1_RTS_IO_NUM, 1);
-    lpm->wake = 0;
+	lpm->wake = 0;
 #endif
-	
+
 	return 0;
 }
 
 static const struct rfkill_ops bt_bcm_rfkill_ops = {
-	.set_block 	= bt_bcm_rfkill_set_block,
-};
-
-static const char on_string[] = "1";
-static const char off_string[] = "0";
-static ssize_t show_onoff(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	struct bt_bcm_info *bcm = dev_get_drvdata(dev);
-	struct bt_ctl_gpio *btp;
-
-	BTI_TYPE(btp, BT_TYPE_POWER, bcm);
-	
-	return sprintf(buf, "%s\n", bt_bcm_get_io_val(btp) ? on_string: off_string);
-}
-
-static ssize_t set_onoff(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t count)
-{
-	struct bt_bcm_info *bcm = dev_get_drvdata(dev);
-	struct bt_ctl_gpio *btp;
-	int len = count;
-	char *cp;
-	int rc = count;
-
-	cp = memchr(buf, '\n', count);
-	if (cp)
-		len = cp - buf;
-
-	BTI_TYPE(btp, BT_TYPE_POWER, bcm);
-	if ((len == sizeof on_string - 1 &&
-			strncmp(buf, on_string, len) == 0) ||
-			(count == sizeof(on_string) &&
-			strncmp(buf, on_string, count) == 0)){
-//		bt_bcm_rfkill_set_block(bcm,true);
-		pr_err("[BT---pchen] set on \n");
-//		bt_bcm_set_io_val(btp, 1);	/* on */
-		nxp_soc_gpio_set_io_pull_enb(PAD_GPIO_D + 20, 1);
-		nxp_soc_gpio_set_io_pull_sel(PAD_GPIO_D + 20, 0);
-		msleep(10);
-	}
-	else if ((len == sizeof off_string - 1 &&
-			strncmp(buf, off_string, len) == 0) ||
-			(count == sizeof(off_string) &&
-			strncmp(buf, off_string, count) == 0)){
-//		bt_bcm_rfkill_set_block(bcm,false);
-		pr_err("[BT---pchen] set off \n");
-	
-//		bt_bcm_set_io_val(btp, 0);	/* off */
-		nxp_soc_gpio_set_io_pull_enb(PAD_GPIO_D + 20, 0);
-//		nxp_soc_gpio_set_io_pull_sel(PAD_GPIO_D + 20, 0);
-		msleep(100);
-
-	}else{
-		pr_err("[BT---pchen] error------------- \n");
-		rc = -EINVAL;
-	}
-
-	return rc;
-}
-
-static DEVICE_ATTR(onoff,  S_IRUGO | S_IWUGO, show_onoff, set_onoff);
-static struct attribute *gpio_attrs[] = {
-	&dev_attr_onoff.attr,
-	NULL,
-};
-
-static struct attribute_group gpio_attr_group = {
-	.name	= "gpio",
-	.attrs	= gpio_attrs,
+	.set_block	= bt_bcm_rfkill_set_block,
 };
 
 static int bt_bcm_probe(struct platform_device *pdev)
@@ -535,14 +425,14 @@ static int bt_bcm_probe(struct platform_device *pdev)
 		}
 
 		bt_bcm_set_direction(bti, bti->direction, bti->init_val);
-		pr_debug("bt_bcm: %s %s.%d %s ...\n", bti->name,
+		pr_debug("bt_bcm: %s %s.%d ... %s\n", bti->name,
 			STR_GR(bti->gpio), BIT_NR(bti->gpio), bti->direction?"output":"input");
 	}
 
 	rfkill = rfkill_alloc("BCM Bluetooth", &pdev->dev,
-				RFKILL_TYPE_BLUETOOTH, &bt_bcm_rfkill_ops, bcm);
+			RFKILL_TYPE_BLUETOOTH, &bt_bcm_rfkill_ops, bcm);
 	if (unlikely(!rfkill)) {
-		ret =  -ENOMEM;
+		ret = -ENOMEM;
 		goto err_gpio;
 	}
 
@@ -559,23 +449,14 @@ static int bt_bcm_probe(struct platform_device *pdev)
 	rfkill_set_sw_state(rfkill, true);
 	platform_set_drvdata(pdev, bcm);
 
-	ret = sysfs_create_group(&pdev->dev.kobj, &gpio_attr_group);
-	if (unlikely(ret < 0)) {
-		ret = -1;
-		pr_err("[BT]sysfs_merge_group failed!\n");
-		goto err_sysfs;
-	}
-
 	/* set lpm */
 #if defined (SUPPOR_BT_BCM_LPM)
 	bt_bcm_lpm_init(bcm);
 #endif
 
-	pr_info("bt_bcm: rfkill register ....\n");
+	pr_info("bt_bcm: rfkill initialized\n");
 	return 0;
 
-err_sysfs:
-	rfkill_unregister(rfkill);
 err_rfkill:
 	rfkill_destroy(rfkill);
 err_gpio:
@@ -608,21 +489,21 @@ static int bt_bcm_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static struct platform_device  bt_bcm_device = {
-	.name			= "bt_bcm",
-	.id				= 0,
-	.dev			= {
+static struct platform_device bt_bcm_device = {
+	.name		= "bt_bcm",
+	.id			= 0,
+	.dev		= {
 		.platform_data	= &bt_plat_data,
 	}
 };
 
-static struct platform_driver  bt_bcm_driver = {
-	.probe 	= bt_bcm_probe,
-	.remove = bt_bcm_remove,
-  	.suspend	= bt_bcm_rfkill_suspend,
-	.driver = {
-		   .name = "bt_bcm",
-		   .owner = THIS_MODULE,
+static struct platform_driver bt_bcm_driver = {
+	.probe		= bt_bcm_probe,
+	.remove		= bt_bcm_remove,
+	.suspend	= bt_bcm_rfkill_suspend,
+	.driver	= {
+		.name	= "bt_bcm",
+		.owner	= THIS_MODULE,
 	},
 };
 
@@ -631,9 +512,10 @@ static int __init bt_bcm_init(void)
 	int ret;
 
 	platform_device_register(&bt_bcm_device);
-    ret = platform_driver_register(&bt_bcm_driver);
+	ret = platform_driver_register(&bt_bcm_driver);
 	return ret;
 }
+
 static void __exit bt_bcm_exit(void)
 {
 	platform_driver_unregister(&bt_bcm_driver);
