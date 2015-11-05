@@ -1137,25 +1137,11 @@ static int _dwmci2_get_cd(u32 slot_id)
 }
 
 static struct dw_mci_board _dwmci2_data = {
-#if 0
-	/* Settings applied for eMMC only */
-	.quirks			= DW_MCI_QUIRK_BROKEN_CARD_DETECTION |
-					  DW_MCI_QUIRK_HIGHSPEED |
-					  DW_MMC_QUIRK_HW_RESET_PW |
-					  DW_MCI_QUIRK_NO_DETECT_EBIT,
-	.bus_hz			= 100 * 1000 * 1000,
-	.caps			= MMC_CAP_UHS_DDR50 |
-					  MMC_CAP_NONREMOVABLE |
-					  MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23 |
-					  MMC_CAP_ERASE | MMC_CAP_HW_RESET,
-	.clk_dly		= DW_MMC_DRIVE_DELAY(0) | DW_MMC_SAMPLE_DELAY(0) | DW_MMC_DRIVE_PHASE(3) | DW_MMC_SAMPLE_PHASE(2),
-#else
 	.quirks			= DW_MCI_QUIRK_HIGHSPEED,
 	.bus_hz			= 100 * 1000 * 1000,
 	.caps			= MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23 | MMC_CAP_HW_RESET,
 	.cd_type		= DW_MCI_CD_EXTERNAL,
 	.clk_dly		= DW_MMC_DRIVE_DELAY(0) | DW_MMC_SAMPLE_DELAY(0) | DW_MMC_DRIVE_PHASE(2) | DW_MMC_SAMPLE_PHASE(1),
-#endif
 
 	.init			= _dwmci2_init,
 	.get_cd			= _dwmci2_get_cd,
@@ -1170,6 +1156,24 @@ static struct dw_mci_board _dwmci2_data = {
 	.mode			= PIO_MODE,
 #endif
 };
+
+static void __init board_fixup_dwmci2(void)
+{
+	struct dw_mci_board *pd = &_dwmci2_data;
+
+	/* Settings applied for eMMC only */
+	pd->quirks		= DW_MCI_QUIRK_BROKEN_CARD_DETECTION |
+					  DW_MCI_QUIRK_HIGHSPEED |
+					  DW_MMC_QUIRK_HW_RESET_PW |
+					  DW_MCI_QUIRK_NO_DETECT_EBIT;
+	pd->bus_hz		= 100 * 1000 * 1000;
+	pd->caps		= MMC_CAP_UHS_DDR50 |
+					  MMC_CAP_NONREMOVABLE |
+					  MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23 |
+					  MMC_CAP_ERASE | MMC_CAP_HW_RESET;
+	pd->clk_dly		= DW_MMC_DRIVE_DELAY(0) | DW_MMC_SAMPLE_DELAY(0) | DW_MMC_DRIVE_PHASE(3) | DW_MMC_SAMPLE_PHASE(2);
+	pd->get_cd		= NULL;
+}
 #endif
 
 #endif /* CONFIG_MMC_DW */
@@ -1220,6 +1224,33 @@ static struct platform_device hdmi_cec_device = {
 #endif /* CONFIG_NXP_HDMI_CEC */
 
 /*------------------------------------------------------------------------------
+ * HW revision
+ */
+#include <asm/system_info.h>
+#include <board-revision.h>
+
+int board_get_revision(void)
+{
+	return system_rev;
+}
+
+static void __init board_hwrev_init(void)
+{
+	int rev;
+
+	rev  = nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB1);
+	rev |= nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB2) << 1;
+	rev |= nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB3) << 2;
+
+	/* Initialize system Revision & Serial */
+	system_rev = rev;
+	system_serial_high = 0xFA4418DB;
+	system_serial_low  = 0xA4420544;
+
+	printk("plat: board revision %d\n", rev);
+}
+
+/*------------------------------------------------------------------------------
  * register board platform devices
  */
 void __init nxp_board_devices_register(void)
@@ -1227,6 +1258,14 @@ void __init nxp_board_devices_register(void)
 	struct nxp_lcd *lcd = nanopi2_get_lcd();
 
 	printk("[Register board platform devices]\n");
+
+	board_hwrev_init();
+
+	if (board_is_nanopc()) {
+#ifdef CONFIG_MMC_NXP_CH2
+		board_fixup_dwmci2();
+#endif
+	}
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
 	printk("plat: add dynamic frequency (pll.%d)\n", dfs_plat_data.pll_dev);
