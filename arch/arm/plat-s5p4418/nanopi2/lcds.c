@@ -14,7 +14,24 @@
 #include <linux/module.h>
 
 #include <mach/platform.h>
+#include <mach/soc.h>
 #include <nxp-fb.h>
+
+static void s70_gpio_init(void)
+{
+	int i;
+
+	/* PVCLK */
+	nxp_soc_gpio_set_io_drv(PAD_GPIO_A + 0, 1);
+
+	/* RGB24 */
+	for (i = 1; i < 25; i++)
+		nxp_soc_gpio_set_io_drv(PAD_GPIO_A + i, 2);
+
+	/* HS/VS/DE */
+	for (; i < 28; i++)
+		nxp_soc_gpio_set_io_drv(PAD_GPIO_A + i, 1);
+}
 
 
 /* NXP display configs for supported LCD */
@@ -69,6 +86,7 @@ static struct nxp_lcd wvga_s70 = {
 		.inv_vsync = 1,
 		.inv_vden = 0,
 	},
+	.gpio_init = s70_gpio_init,
 };
 
 static struct nxp_lcd wvga_s70d = {
@@ -341,7 +359,7 @@ static struct hdmi_config {
 
 
 /* Try to guess LCD panel by kernel command line, or
- * using *W50* as default */
+ * using *HD101* as default */
 
 static struct {
 	char *name;
@@ -351,9 +369,9 @@ static struct {
 	{ "HD101",	&wxga_hd101, 1 },
 	{ "HD700",	&wxga_hd700, 1 },
 	{ "S70",	&wvga_s70,   1 },
-	{ "S702",	&wvga_s70,   3 },
 
 	/* TODO: Testing */
+	{ "S702",	&wvga_s70,   3 },
 	{ "S70D",	&wvga_s70d,  1 },
 	{ "W50",	&wvga_w50,   0 },
 	{ "W101",	&wsvga_w101, 1 },
@@ -361,7 +379,7 @@ static struct {
 	{ "LQ150",	&xga_lq150,  1 },
 	{ "L80",	&vga_l80,    1 },
 	{ "BP101",	&wxga_bp101, 1 },
-	{ "HDM",	&hdmi_def,   0 },	/* Pls keep it at last */
+	{ "HDMI",	&hdmi_def,   0 },	/* Pls keep it at last */
 };
 
 static int lcd_idx = 0;

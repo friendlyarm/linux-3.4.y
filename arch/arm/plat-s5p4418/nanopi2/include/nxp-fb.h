@@ -60,7 +60,7 @@ struct nxp_lcd_timing {
  * @freq:		vframe frequency
  * @timing:		timing values
  * @polarity:	polarity settings
- * @init_ldi:	pointer to LDI init function
+ * @gpio_init:	pointer to GPIO init function
  *
  */
 struct nxp_lcd {
@@ -72,6 +72,7 @@ struct nxp_lcd {
 	int	freq;
 	struct	nxp_lcd_timing timing;
 	struct	nxp_lcd_polarity polarity;
+	void	(*gpio_init)(void);
 };
 
 /**

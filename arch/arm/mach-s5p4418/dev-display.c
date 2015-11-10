@@ -181,7 +181,8 @@ static void __disp_lcd_dev_data(struct disp_vsync_info *vsync,
 	if (sgpar)
 		plcd->sync_gen = sgpar;
 
-	SET_VSYNC_INFO(vsync, plcd->vsync);
+	if (plcd->vsync && vsync)
+		*plcd->vsync = *vsync;
 }
 #else
 #define	__disp_lcd_dev_data(s, p, g)
