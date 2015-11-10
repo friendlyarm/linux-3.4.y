@@ -386,7 +386,12 @@ static int lcd_idx = 0;
 
 static int __init nanopi2_setup_lcd(char *str)
 {
+	char *delim;
 	int i;
+
+	delim = strchr(str, ',');
+	if (delim)
+		*delim++ = '\0';
 
 	if (!strncasecmp("HDMI", str, 4)) {
 		struct hdmi_config *cfg = &nanopi2_hdmi_config[0];
