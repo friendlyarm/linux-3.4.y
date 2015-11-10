@@ -289,6 +289,9 @@ static void nxp_platform_disp_init(struct nxp_lcd *lcd)
 		vsync.clk_div_lv1	= CFG_DISP_PRI_CLKGEN1_DIV;
 		vsync.clk_out_inv	= lcd->polarity.rise_vclk;
 
+		if (lcd->gpio_init)
+			lcd->gpio_init();
+
 		nxp_platform_disp_device_data(DISP_DEVICE_LCD, &vsync, NULL, NULL);
 	}
 }
