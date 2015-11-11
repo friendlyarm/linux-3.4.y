@@ -33,6 +33,12 @@ static void s70_gpio_init(void)
 		nxp_soc_gpio_set_io_drv(PAD_GPIO_A + i, 1);
 }
 
+static void hd101_gpio_init(void)
+{
+	nxp_soc_gpio_set_io_drv(PAD_GPIO_A +  0, 2);
+	nxp_soc_gpio_set_io_drv(PAD_GPIO_A + 27, 2);
+}
+
 
 /* NXP display configs for supported LCD */
 
@@ -295,6 +301,7 @@ static struct nxp_lcd wxga_hd101 = {
 		.inv_vsync = 0,
 		.inv_vden = 0,
 	},
+	.gpio_init = hd101_gpio_init,
 };
 
 /* HDMI */
