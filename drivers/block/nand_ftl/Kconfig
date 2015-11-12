@@ -1,0 +1,20 @@
+#
+# FTL device driver configuration
+#
+
+menuconfig NXP_FTL
+	bool "NXP NAND FTL"
+	select NAND_FTL
+	depends on BLOCK
+	default n
+	---help---
+
+if NXP_FTL
+
+config NAND_FTL
+	depends on BLOCK
+	depends on ARCH_NXP4330 || ARCH_S5P4418 || ARCH_S5P6818
+	default y
+	bool "NXP Nand FTL Driver"
+
+endif # NXP_FTL

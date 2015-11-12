@@ -1,0 +1,78 @@
+#
+# Siano Mobile Silicon Digital TV device configuration
+#
+
+config SMS_SIANO_MDTV
+	tristate "Siano SMSxxxx based MDTV receiver"
+	---help---
+	  Choose Y or M here if you have MDTV receiver with a Siano chipset.
+
+	  To compile this driver as a module, choose M here
+	  (The module will be called smsmdtv).
+
+	  Further documentation on this driver can be found on the WWW
+	  at http://www.siano-ms.com/
+
+menu "Siano module components"
+
+# Kernel sub systems support
+
+config SMS_RC_SUPPORT_SUBSYS
+	bool "Remote Control Subsystem support"
+	depends on RC_CORE
+	default n
+	---help---
+	Choose if you would like to have Siano's ir remote control sub-system support.
+
+config SMS_HOSTLIB_SUBSYS
+	bool "Host Library Subsystem support"
+	default n
+	---help---
+	Choose if you would like to have Siano's host library kernel sub-system support.
+
+config SMS_DVB_API_SUBSYS
+	bool "DVB API Subsystem support"
+	depends on DVB_CORE
+	default n
+	---help---
+	Choose if you would like to have Siano's host library kernel sub-system support.
+
+if SMS_HOSTLIB_SUBSYS
+config SMS_NET_SUBSYS
+	bool "Siano Network Adapter"
+	depends on NET
+	default n
+	---help---
+	Choose if you would like to have Siano's network adapter support.
+endif # SMS_HOSTLIB_SUBSYS
+
+# Hardware interfaces support
+
+config SMS_USB_DRV
+	bool "USB interface support"
+	depends on USB
+	default y if USB
+	---help---
+	  Choose if you would like to have Siano's support for USB interface
+
+config SMS_SDIO_DRV
+	bool "SDIO interface support"
+	depends on MMC
+	---help---
+	  Choose if you would like to have Siano's support for SDIO interface
+
+config SMS_SPI_DRV
+	bool "SPI interface support"
+	depends on SPI
+	default y if SPI
+	---help---
+	Choose if you would like to have Siano's support for PXA 310 SPI interface
+
+config SMS_I2C_DRV
+	bool "I2C interface support"
+	depends on I2C
+	---help---
+	Choose if you would like to have Siano's support for I2C interface
+
+endmenu
+

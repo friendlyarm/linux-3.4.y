@@ -1,0 +1,19 @@
+config SND_SAMSUNG_ALP
+	depends on SND_SAMSUNG_I2S && ARCH_EXYNOS5
+	bool "Low power audio support with SRP"
+	default n
+	help
+	  Say Y if you want to support ALP audio.
+
+config AUDIO_SAMSUNG_MEMSIZE_SRP
+	int "Memory size in kbytes for ALP Audio"
+	depends on SND_SAMSUNG_ALP
+	default "1024"
+
+config SND_SAMSUNG_RP_DEBUG
+	bool "Enable debug message for ALP Audio"
+	depends on SND_SAMSUNG_ALP
+	default n
+	help
+	  Say Y if you want to add debug message for ALP Audio.
+

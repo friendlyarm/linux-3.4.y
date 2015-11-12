@@ -1,0 +1,123 @@
+#
+# Copyright 2010 Nexell.
+#
+# Configuration options for the S5Pxxx Sound
+
+config SND_NXP_SOC
+	tristate "S5Pxxx SoC Audio"
+	depends on ARCH_CPU_SLSI
+	select AMBA_PL08X
+	help
+	  Say Y or M if you want to add support for codecs attached to
+	  the AC97 and I2S interface.
+
+config SND_NXP_DFS
+	bool "DFS featrue for I2S(default PLL2)"
+	depends on SND_NXP_SOC
+	help
+	  Say Y if you want to add DFS feature support for I2S and interface.
+
+choice
+    prompt "Select SND PLL device"
+    depends on SND_NXP_DFS
+    default SND_NXP_PLL_2
+
+config SND_NXP_PLL_2
+    bool "PLL 2"
+
+config SND_NXP_PLL_3
+    bool "PLL 3"
+
+endchoice
+
+config SND_NXP_PLLDEV
+    int 
+    default 2 if SND_NXP_PLL_2
+    default 3 if SND_NXP_PLL_3
+										
+config SND_NXP_I2S
+	tristate
+
+config SND_NXP_I2S_CH0
+	bool "I2S 0"
+	depends on SND_NXP_SOC
+	select SND_NXP_I2S
+	default y
+
+config SND_NXP_I2S_CH1
+	bool "I2S 1"
+	depends on SND_NXP_SOC
+	select SND_NXP_I2S
+	default n
+
+config SND_NXP_I2S_CH2
+	bool "I2S 2"
+	depends on SND_NXP_SOC
+	select SND_NXP_I2S
+	default n
+
+config SND_NXP_SPDIF_TX
+	tristate
+
+config SND_NXP_SPDIF_RX
+	tristate
+
+config SND_SPDIF_TRANSCIEVER
+	tristate "SPDIF transciever (PCM)"
+	depends on SND_NXP_SOC
+	select SND_NXP_SPDIF_TX
+	select SND_SOC_SPDIF
+
+config SND_SPDIF_RECEIVER
+	tristate "SPDIF receiver (PCM)"
+	depends on SND_NXP_SOC
+	select SND_NXP_SPDIF_RX
+	select SND_SOC_SPDIF
+
+config SND_NXP_PDM
+	tristate
+
+config SND_PDM_REC
+	tristate "PDM record (PCM)"
+	depends on SND_NXP_SOC
+	select SND_NXP_PDM
+	default n
+
+config SND_CODEC_NULL
+	tristate "I2S audio null codec."
+	depends on SND_NXP_I2S
+
+config SND_CODEC_RT5631
+	tristate "rt5631 I2S audio codec."
+	depends on SND_NXP_I2S
+	select SND_SOC_RT5631
+
+config SND_CODEC_ES8316
+	tristate "es8316 I2S audio codec."
+	depends on SND_NXP_I2S
+	select SND_SOC_ES8316
+
+config SND_CODEC_ALC5623
+	tristate "ALC562(123) I2S audio codec."
+	depends on SND_NXP_I2S
+	select SND_SOC_ALC5623
+
+config SND_CODEC_ALC5633
+        tristate "alc5633 I2S audio codec."
+        depends on SND_NXP_I2S
+        select SND_SOC_ALC5633
+
+config SND_CODEC_WM8976
+	tristate "wm8976 (wm8978) I2S audio codec."
+	depends on SND_NXP_I2S
+	select SND_SOC_WM8978
+
+config SND_CODEC_CS42L51_NX
+	tristate "cs42l51 I2S audio codec(S5Pxxx work)."
+	depends on SND_NXP_I2S
+	select SND_SOC_CS42L51_NX
+
+config SND_CODEC_WM8903
+	tristate "wm8903  I2S audio codec."
+	depends on SND_NXP_I2S
+	select SND_SOC_WM8903

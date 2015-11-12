@@ -1,0 +1,43 @@
+#
+# Copyright 2009 Nexell.
+#
+
+
+# Select Board types
+comment "Board features"
+
+choice
+    prompt "Platform board"
+    default PLAT_S5P6818_DRONE
+
+	config PLAT_S5P6818_VTK
+		bool "VTK: Validation Kit board"
+		help
+   	 		Support for the validation kit board.
+
+	config PLAT_S5P6818_DRONE
+		bool "DRONE: Android drone board"
+		help
+   	 		Support for the drone board.
+
+   	config PLAT_S5P6818_FDONE
+		bool "FDONE: Android FDONE board"
+		help
+   	 		Support for the FDONE board.
+
+   	config PLAT_S5P6818_SVT
+		bool "SVT: Android SVT board"
+		help
+   	 		Support for the SVT board.
+
+   	config PLAT_S5P6818_ASB
+		bool "ASB: Android ASB board"
+		help
+   	 		Support for the ASB board.
+
+
+endchoice
+
+#
+# Board dependent configure
+#

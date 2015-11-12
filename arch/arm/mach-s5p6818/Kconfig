@@ -1,0 +1,122 @@
+#
+# Copyright 2009 Nexell.
+#
+
+config ARCH_CPU_SLSI
+	bool
+	select IRQ_DOMAIN
+	select MULTI_IRQ_HANDLER
+	default y
+
+config ARCH_S5P6818_REV
+	bool "s5p6818 revision"
+	default y
+
+choice
+	prompt "Prototype build mode"
+	default S5P6818_PROTO_RELEASE
+
+config  S5P6818_PROTO_RELEASE
+	bool "Release"
+
+config  S5P6818_PROTO_DEBUG
+	bool "Debug"
+endchoice
+
+choice
+	prompt "Memory max order"
+	default S5P6818_MEM_MAX_ORDER_11
+
+config	S5P6818_MEM_MAX_ORDER_11
+	bool "4Mbyte"
+
+config	S5P6818_MEM_MAX_ORDER_12
+    bool "8Mbyte"
+
+config	S5P6818_MEM_MAX_ORDER_13
+	bool "16Mbyte"
+
+endchoice
+
+config FORCE_MAX_ZONEORDER
+   	int
+   	default 11 if S5P6818_MEM_MAX_ORDER_11
+   	default 12 if S5P6818_MEM_MAX_ORDER_12
+   	default 13 if S5P6818_MEM_MAX_ORDER_13
+
+comment "CPU feature"
+
+config S5P6818_PM_IDLE
+	bool "Goto idle when Suspend"
+	depends on SUSPEND
+	default n
+
+config PM_DBGOUT
+	bool "Support PM_DBGOUT"
+	default n
+
+config HAVE_PWM
+	prompt "PWM driver"
+	bool
+	select NXP_SOC_PWM
+	default y
+
+config PWM_SYSFS
+	bool "/sys/devices/platform/pwm.N (sysfs interface)"
+	depends on HAVE_PWM
+	default y
+
+config HAVE_PWM_CH0
+	bool "pwm 0"
+	depends on HAVE_PWM
+	default y
+
+config HAVE_PWM_CH1
+	bool "pwm 1"
+	depends on HAVE_PWM
+	default n
+
+config HAVE_PWM_CH2
+	bool "pwm 2"
+	depends on HAVE_PWM
+	default n
+
+config HAVE_PWM_CH3
+	bool "pwm 3"
+	depends on HAVE_PWM
+	default n
+
+config NXP_SOC_PWM
+	bool "Support PWM SoC"
+	default y if HAVE_PWM
+
+config NXP_DISPLAY
+	bool "Support Display SoC"
+	default n
+
+config NXP_DISPLAY_1ST
+	bool "Primary   display output (MLC0/DPC0)"
+	depends on NXP_DISPLAY
+
+config NXP_DISPLAY_2ST
+	bool "Secondary display output (MLC1/DPC1)"
+	depends on NXP_DISPLAY
+
+config NXP_DISPLAY_RESCONV
+	bool "Resolution Converter"
+	depends on NXP_DISPLAY
+	default n
+
+config ANDROID_PERSISTENT_RAM_CONS_AREA
+    hex "RAM console physical hex address"
+    depends on ANDROID_RAM_CONSOLE
+    default 0x0
+
+config ANDROID_PERSISTENT_RAM_CONS_SIZE
+    int "RAM console size (KB)"
+    depends on ANDROID_RAM_CONSOLE
+    default 16
+
+source "arch/arm/plat-s5p6818/Kconfig"
+
+

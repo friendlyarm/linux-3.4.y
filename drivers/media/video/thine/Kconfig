@@ -1,0 +1,7 @@
+
+config VIDEO_THP7212_CAM
+    tristate "THine THP7212 sensor support(nexell work)"
+    depends on I2C && VIDEO_V4L2
+    ---help---
+	  This is a Video4Linux2 sensor-level driver for the THine
+	  THP7212 13M Pixel CMOS sensor.

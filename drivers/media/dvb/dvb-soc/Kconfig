@@ -1,0 +1,5 @@
+config NXP_MP2TS_IF
+	tristate "NXP MP2TS driver"
+	depends on I2C
+	help
+	  Support for MP2TS I/F based on the NXP.

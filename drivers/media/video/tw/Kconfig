@@ -1,0 +1,12 @@
+
+config VIDEO_TW9992
+    tristate "TW9992 video decoder"
+    depends on I2C && VIDEO_V4L2
+    ---help---
+	  Support for the Intersil/Techwell TW9992 video decoder.
+
+config VIDEO_TW9900
+    tristate "TW9900 video decoder"
+    depends on I2C && VIDEO_V4L2
+    ---help---
+      Support for the Intersil/Techwell TW9900 video decoder.

@@ -1,0 +1,49 @@
+menuconfig KP_AXP
+	bool "AXP Power drivers"
+	depends on REGULATOR
+	default n
+	---help---
+	  This option allows you to select AXP power driver
+
+if KP_AXP
+
+choice
+	prompt "AXP PMU type"
+	default KP_AXP22
+
+config KP_AXP22
+	bool "AXP22 driver"
+	---help---
+	  AXP22 driver
+
+endchoice
+
+config AXP_REGULATOR
+	bool "AXP Regulator Driver"
+	default n
+
+config AXP_BATTERY
+	bool "AXP Battery Driver"
+	default n
+
+config AXP_DEBUG
+	bool "AXP debug interface"
+	default n
+	
+config KP_OUTPUTINIT
+	bool "AXP output init"
+	default n
+	
+config AXP_CHARGEINIT
+	bool "AXP initial charging environment set"
+	default y
+
+config AXP_CHGCHANGE
+	bool "AXP charging current set when suspend\resume\shutdown"
+	default y
+
+config AXP_GPIO
+	bool "AXP gpio driver"
+	default n
+
+endif # !KP_AXP

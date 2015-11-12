@@ -1,0 +1,38 @@
+#
+# Copyright 2009 Nexell.
+#
+
+# Select Board types
+comment "Board features"
+
+choice
+    prompt "Platform board"
+    default PLAT_S5P4418_DRONE
+
+	config PLAT_S5P4418_DRONE
+		bool "DRONE: Android drone board"
+		help
+   	 		Support for the drone board.
+
+	config PLAT_S5P4418_SVT
+		bool "SVT: Linux svt board"
+		help
+   	 		Support for the svt board.
+
+	config PLAT_S5P4418_ASB
+		bool "ASB: Linux asb board"
+		help
+   	 		Support for the asb board.
+
+	config PLAT_S5P4418_LEPUS
+		bool "DRONE: Android lepus board"
+		help
+   	 		Support for the drone board.
+
+endchoice
+
+#
+# Board dependent configure
+#
+
+
