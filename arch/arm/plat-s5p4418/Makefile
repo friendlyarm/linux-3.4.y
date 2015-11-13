@@ -19,6 +19,10 @@ ifeq ($(CONFIG_PLAT_S5P4418_LEPUS),y)
 PLATBOARD :=lepus
 endif
 
+ifeq ($(CONFIG_PLAT_S5P4418_NANOPI2),y)
+PLATBOARD := nanopi2
+endif
+
 #
 # Build options
 #
@@ -31,6 +35,4 @@ KBUILD_CFLAGS 	+= -I$(srctree)/$(platdirs)common	\
 				   -I$(srctree)/$(platdirs)$(PLATBOARD)/include
 KBUILD_CPPFLAGS += -I$(srctree)/$(platdirs)common	\
 				   -I$(srctree)/$(platdirs)$(PLATBOARD)/include
-
-
 
