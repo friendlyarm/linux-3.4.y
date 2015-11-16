@@ -57,10 +57,12 @@
 #define DW_MCI_HW_TIMEOUT		500	// ms
 #define DW_MCI_DATA_OVER_WAIT		1000	// us
 
-#define DW_MCI_FIFO_STATUS_MASK 0x3ffe0000	
+#define DW_MCI_FIFO_STATUS_MASK 0x3ffe0000
 
-#define DW_MCI_FIFO_CHECK_WARN(host) if(mci_readl(host,STATUS) & DW_MCI_FIFO_STATUS_MASK) \
-								dev_warn(&host->dev,"fifo is not empty");
+#define DW_MCI_FIFO_CHECK_WARN(host) \
+	if (mci_readl(host,STATUS) & DW_MCI_FIFO_STATUS_MASK) \
+		dev_warn(&host->dev,"fifo is not empty");
+
 #ifdef CONFIG_MMC_DW_IDMAC
 struct idmac_desc {
 	u32		des0;	/* Control Descriptor */
@@ -147,7 +149,7 @@ struct dw_mci_slot {
 static struct workqueue_struct *dw_mci_card_workqueue;
 
 
-#if defined(CONFIG_ESP8089)
+#if defined(CONFIG_ESP8089) || defined(CONFIG_BCMDHD) || defined(CONFIG_BCMDHD_MODULE)
 #include <mach/platform.h>
 static struct dw_mci_slot* mci_slot[4] = {NULL, NULL, NULL, NULL};
 static int mci_id = 0;
@@ -164,7 +166,7 @@ void sw_mci_rescan_card(unsigned insert)
 
 	slot->last_detect_state = insert ? 1 : 0;
 
-	if(!insert)
+	if (!insert)
 		mmc_stop_host(slot->mmc);
 
 	mmc_detect_change(slot->mmc, 0);
@@ -172,6 +174,12 @@ void sw_mci_rescan_card(unsigned insert)
 	return;
 }
 EXPORT_SYMBOL_GPL(sw_mci_rescan_card);
+
+void force_presence_change(struct platform_device *dev, int state)
+{
+	sw_mci_rescan_card(state);
+}
+EXPORT_SYMBOL_GPL(force_presence_change);
 #endif
 
 #if defined(CONFIG_DEBUG_FS)
@@ -388,6 +396,7 @@ static void mci_send_cmd(struct dw_mci_slot *slot, u32 cmd, u32 arg)
 		if (!(cmd_status & SDMMC_CMD_START))
 			return;
 	}
+
 	dev_err(&slot->mmc->class_dev,
 		"Timeout sending command (cmd %#x arg %#x status %#x)\n",
 		cmd, arg, cmd_status);
@@ -803,7 +812,7 @@ static void dw_mci_setup_bus(struct dw_mci_slot *slot, int force)
 				slot->host->pdata->set_io_timing(slot->host, MMC_TIMING_LEGACY);
 			} else
 				reset_div = false;
-		} while(reset_div);
+		} while (reset_div);
 
 		dev_info(&slot->mmc->class_dev,
 			 "Bus speed (slot %d) = %dHz (slot req %dHz, actual %dHZ"
@@ -836,12 +845,12 @@ static void dw_mci_setup_bus(struct dw_mci_slot *slot, int force)
 	}
 
 	/* Set the current slot bus width */
-#ifdef CONFIG_ARCH_S5P6818	
-	if(slot->ctype == SDMMC_CTYPE_8BIT)
-	{
-		NX_TIEOFF_Set(TIEOFFINDEX_OF_MMC_8BIT , 1 );
+#ifdef CONFIG_ARCH_S5P6818
+	if (slot->ctype == SDMMC_CTYPE_8BIT) {
+		NX_TIEOFF_Set(TIEOFFINDEX_OF_MMC_8BIT, 1);
 	}
 #endif
+
 	mci_writel(host, CTYPE, (slot->ctype << slot->id));
 }
 
@@ -1264,6 +1273,7 @@ static void dw_mci_hw_reset(struct mmc_host *host)
 	if (brd->hw_reset)
 		brd->hw_reset(slot->id);
 }
+
 static const struct mmc_host_ops dw_mci_nodma_ops = {
 	.request		= dw_mci_request,
 	.pre_req		= NULL,
@@ -2132,7 +2142,7 @@ static irqreturn_t dw_mci_interrupt(int irq, void *dev_id)
 
 #ifdef CONFIG_MMC_DW_IDMAC
 	/* Handle DMA interrupts */
-	if(host->use_dma) {
+	if (host->use_dma) {
 		pending = mci_readl(host, IDSTS);
 		if (pending & (SDMMC_IDMAC_INT_TI | SDMMC_IDMAC_INT_RI)) {
 			mci_writel(host, IDSTS, SDMMC_IDMAC_INT_TI | SDMMC_IDMAC_INT_RI);
@@ -2322,14 +2332,14 @@ static int dw_mci_init_slot(struct dw_mci *host, unsigned int id)
 	slot->host = host;
 	host->slot[id] = slot;	/* add by jhkim */
 
-#if defined(CONFIG_ESP8089)
+#if defined(CONFIG_ESP8089) || defined(CONFIG_BCMDHD) || defined(CONFIG_BCMDHD_MODULE)
 	mci_slot[mci_id++] = slot;
 #endif
-	if(host->pdata->mode == DMA_MODE)	
+
+	if (host->pdata->mode == DMA_MODE)
 		mmc->ops = &dw_mci_ops;
-	else 
+	else
 		mmc->ops = &dw_mci_nodma_ops;
-	
 
 	mmc->f_min = DIV_ROUND_UP(host->bus_hz, 510);
 	mmc->f_max = host->bus_hz;
@@ -2378,7 +2388,7 @@ static int dw_mci_init_slot(struct dw_mci *host, unsigned int id)
 	} else {
 		/* Useful defaults if platform data is unset. */
 #ifdef CONFIG_MMC_DW_IDMAC
-		if( host->pdata->mode == DMA_MODE) {
+		if (host->pdata->mode == DMA_MODE) {
 			mmc->max_segs = host->ring_size;
 			mmc->max_blk_size = 65536;
 			mmc->max_blk_count = host->ring_size;
@@ -2391,13 +2401,12 @@ static int dw_mci_init_slot(struct dw_mci *host, unsigned int id)
 			mmc->max_req_size = mmc->max_blk_size * mmc->max_blk_count;
 			mmc->max_seg_size = mmc->max_req_size;
 		}
-#else 
+#else
 		mmc->max_segs = 64;
 		mmc->max_blk_size = 65536; /* BLKSIZ is 16 bits */
 		mmc->max_blk_count = 512;
 		mmc->max_req_size = mmc->max_blk_size * mmc->max_blk_count;
 		mmc->max_seg_size = mmc->max_req_size;
-
 #endif /* CONFIG_MMC_DW_IDMAC */
 	}
 
@@ -2458,12 +2467,11 @@ static void dw_mci_init_dma(struct dw_mci *host)
 
 	/* Determine which DMA interface to use */
 #ifdef CONFIG_MMC_DW_IDMAC
-	if(host->pdata->mode == PIO_MODE)
+	if (host->pdata->mode == PIO_MODE)
 		goto no_dma;
 
 	host->dma_ops = &dw_mci_idmac_ops;
 	dev_info(&host->dev, "Using internal DMA controller.\n");
-
 #endif
 
 	if (!host->dma_ops)
@@ -2659,7 +2667,7 @@ int dw_mci_probe(struct dw_mci *host)
 	if (host->pdata->caps & MMC_CAP_UHS_SDR50)
 		clk_set_rate(host->cclk, 200 * 1000 * 1000);
 
-	if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL)
+	if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL && host->pdata->ext_cd_init)
 		host->pdata->ext_cd_init(&dw_mci_notify_change);
 
 	/* user set hw timeout */
@@ -2721,7 +2729,7 @@ void dw_mci_remove(struct dw_mci *host)
 	mci_writel(host, RINTSTS, 0xFFFFFFFF);
 	mci_writel(host, INTMASK, 0); /* disable all mmc interrupt first */
 
-	if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL)
+	if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL && host->pdata->ext_cd_cleanup)
 		host->pdata->ext_cd_cleanup(&dw_mci_notify_change);
 
 	for (i = 0; i < host->num_slots; i++) {
@@ -2751,8 +2759,6 @@ void dw_mci_remove(struct dw_mci *host)
 
 }
 EXPORT_SYMBOL(dw_mci_remove);
-
-
 
 #ifdef CONFIG_PM_SLEEP
 /*
@@ -2838,12 +2844,12 @@ int dw_mci_resume(struct dw_mci *host)
 		if (!slot)
 			continue;
 		if (host->pdata->cd_type == DW_MCI_CD_EXTERNAL){
-			if(dw_mci_get_cd(mmc)){
-			set_bit(DW_MMC_CARD_PRESENT, &slot->flags);
-			slot->last_detect_state = 1;
+			if (dw_mci_get_cd(mmc)){
+				set_bit(DW_MMC_CARD_PRESENT, &slot->flags);
+				slot->last_detect_state = 1;
 
-			dw_mci_set_ios(slot->mmc, &slot->mmc->ios);
-			dw_mci_setup_bus(slot, true);
+				dw_mci_set_ios(slot->mmc, &slot->mmc->ios);
+				dw_mci_setup_bus(slot, true);
 			}
 		}
 
@@ -2851,6 +2857,7 @@ int dw_mci_resume(struct dw_mci *host)
 			dw_mci_set_ios(slot->mmc, &slot->mmc->ios);
 			dw_mci_setup_bus(slot, true);
 		}
+
 		ret = mmc_resume_host(host->slot[i]->mmc);
 		if (ret < 0)
 			return ret;
