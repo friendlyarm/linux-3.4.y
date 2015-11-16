@@ -38,7 +38,7 @@
 #include <mach/map_desc.h>
 
 #if (0)
-#define DBGOUT(msg...)		do { printk("cpu  : " msg); } while (0)
+#define DBGOUT(msg...)		do { printk("s5p4418: " msg); } while (0)
 #else
 #define DBGOUT(msg...)		do {} while (0)
 #endif
@@ -70,12 +70,12 @@ static void __init cpu_fixup(struct tag *tags, char **cmdline, struct meminfo *m
 	/*
 	 * system momory  = system mem size + dma zone size
 	 */
-    mi->nr_banks      = 1;
+	mi->nr_banks      = 1;
 	mi->bank[0].start = CFG_MEM_PHY_SYSTEM_BASE;
 #if !defined(CFG_MEM_PHY_DMAZONE_SIZE)
 	mi->bank[0].size  = CFG_MEM_PHY_SYSTEM_SIZE;
 #else
-    mi->bank[0].size  = CFG_MEM_PHY_SYSTEM_SIZE + CFG_MEM_PHY_DMAZONE_SIZE;
+	mi->bank[0].size  = CFG_MEM_PHY_SYSTEM_SIZE + CFG_MEM_PHY_DMAZONE_SIZE;
 #endif
 }
 
@@ -188,7 +188,7 @@ static int __init cpu_l2cach_init(void)
 
 	/* l2cache ctrl */
 	__raw_writel(tag_latency, (__PB_IO_MAP_L2C_VIRT + L2X0_TAG_LATENCY_CTRL));
-    __raw_writel(data_latency, (__PB_IO_MAP_L2C_VIRT + L2X0_DATA_LATENCY_CTRL));
+	__raw_writel(data_latency, (__PB_IO_MAP_L2C_VIRT + L2X0_DATA_LATENCY_CTRL));
 	__raw_writel(prefetch_ctrl, (__PB_IO_MAP_L2C_VIRT + L2X0_PREFETCH_CTRL));
 	__raw_writel(pwr_ctrl, (__PB_IO_MAP_L2C_VIRT + L2X0_POWER_CTRL));
 
@@ -226,7 +226,13 @@ static void __init cpu_mem_reserve(void)
 #include <mach/iomap.h>
 extern struct sys_timer nxp_cpu_sys_timer;
 
-MACHINE_START(S5P4418, CFG_SYS_CPU_NAME)
+#if defined(CFG_SYS_MACH_NAME)
+#define NXP_MACH_NAME	CFG_SYS_MACH_NAME
+#else
+#define NXP_MACH_NAME	CFG_SYS_CPU_NAME
+#endif
+
+MACHINE_START(S5P4418, NXP_MACH_NAME)
 	.atag_offset	=  0x00000100,
 	.fixup			=  cpu_fixup,
 	.map_io			=  cpu_map_io,
@@ -239,6 +245,6 @@ MACHINE_START(S5P4418, CFG_SYS_CPU_NAME)
 	.timer			= &nxp_cpu_sys_timer,
 	.init_machine	=  cpu_init_machine,
 #if defined CONFIG_CMA && defined CONFIG_ION
-    .reserve        = cpu_mem_reserve,
+	.reserve		=  cpu_mem_reserve,
 #endif
 MACHINE_END
