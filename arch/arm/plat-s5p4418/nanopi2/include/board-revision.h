@@ -35,7 +35,7 @@
 
 extern int board_get_revision(void);
 
-#define board_is_nanopc()	(board_get_revision() == HWREV_A)
+#define board_is_nanopc()	(board_get_revision() == HWREV_B)
 
 
 #endif /* __BOARD_REVISION_H__ */

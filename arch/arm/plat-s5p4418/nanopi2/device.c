@@ -1298,6 +1298,7 @@ static void __init board_fixup_dwmci2(void)
 					  MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23 |
 					  MMC_CAP_ERASE | MMC_CAP_HW_RESET;
 	pd->clk_dly		= DW_MMC_DRIVE_DELAY(0) | DW_MMC_SAMPLE_DELAY(0) | DW_MMC_DRIVE_PHASE(3) | DW_MMC_SAMPLE_PHASE(2);
+	pd->init		= NULL;
 	pd->get_cd		= NULL;
 }
 #endif
