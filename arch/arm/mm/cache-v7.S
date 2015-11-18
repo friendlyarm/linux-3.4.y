@@ -65,10 +65,10 @@ loop1:
 #endif
 	and	r2, r1, #7			@ extract the length of the cache lines
 	add	r2, r2, #4			@ add 4 (line length offset)
-	ldr	r4, =0x3ff
+	movw	r4, #0x3ff
 	ands	r4, r4, r1, lsr #3		@ find maximum number on the way size
 	clz	r5, r4				@ find bit position of way size increment
-	ldr	r7, =0x7fff
+	movw	r7, #0x7fff
 	ands	r7, r7, r1, lsr #13		@ extract max number of the index size
 loop2:
 	mov	r9, r4				@ create working copy of max way size
