@@ -2819,6 +2819,11 @@ CONFIG_NXP_ADC=y
 # CONFIG_ADXRS450 is not set
 
 #
+# Humidity sensors
+#
+CONFIG_DHT11=m
+
+#
 # Network Analyzer, Impedance Converters
 #
 # CONFIG_AD5933 is not set
