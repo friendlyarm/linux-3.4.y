@@ -629,5 +629,29 @@ config TILE_SROM
 	  device appear much like a simple EEPROM, and knows
 	  how to partition a single ROM for multiple purposes.
 
+config MATRIX_GPIO_INT
+	tristate "Matrix GPIO int sensor module"
+	default m
+	---help---
+	  Driver for Matrix GPIO int sensor module.
+
+config MATRIX_PWM
+	tristate "Matrix PWM module"
+	default m
+	---help---
+	  Driver for Matrix PWM module.
+
+config MATRIX_ROTARY_ENCODER
+	tristate "Matrix rotary encoder"
+	default m
+	---help---
+	  Driver for Matrix rotary encoder.
+
+config MATRIX_HCSR04
+	tristate "Matrix hcsr04"
+	default m
+	---help---
+	  Driver for Matrix hcsr04.
+
 endmenu
 

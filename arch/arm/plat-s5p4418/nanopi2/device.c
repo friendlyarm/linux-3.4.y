@@ -532,6 +532,36 @@ static struct platform_device onewire_device = {
 #endif
 
 /*------------------------------------------------------------------------------
+ * Matrix device
+ */
+#if defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+#define ADXL34X_I2C_BUS     (0)
+
+static struct i2c_board_info __initdata adxl34x_i2c_bdi = {
+	I2C_BOARD_INFO("adxl34x", 0x1d),
+	.irq	= -1,
+};
+#endif
+
+#if defined(CONFIG_BMP085_MODULE)
+#define BMP085_I2C_BUS (0)
+
+static struct i2c_board_info __initdata bmp085_i2c_bdi = {
+	I2C_BOARD_INFO("bmp085", 0x77),
+	.irq	= -1,
+};
+#endif
+
+#if defined(CONFIG_RTC_DRV_DS1307_MODULE)
+#define DS1307_I2C_BUS (0)
+
+static struct i2c_board_info __initdata ds1307_i2c_bdi = {
+	I2C_BOARD_INFO("ds1307", 0X68),
+	.irq	= -1,
+};
+#endif
+
+/*------------------------------------------------------------------------------
  * Keypad platform device
  */
 #if defined(CONFIG_KEYBOARD_NXP_KEY) || defined(CONFIG_KEYBOARD_NXP_KEY_MODULE)
@@ -1616,6 +1646,21 @@ void __init nxp_board_devices_register(void)
 #elif defined(CONFIG_SENSORS_MMA7660) || defined(CONFIG_SENSORS_MMA7660_MODULE)
 	printk("plat: add g-sensor mma7660\n");
 	i2c_register_board_info(MMA7660_I2C_BUS, &mma7660_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_INPUT_ADXL34X_I2C_MODULE)
+	printk("plat: add adxl34x device\n");
+	i2c_register_board_info(ADXL34X_I2C_BUS, &adxl34x_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_BMP085_MODULE)
+	printk("plat: add bmp085 device\n");
+	i2c_register_board_info(BMP085_I2C_BUS, &bmp085_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_RTC_DRV_DS1307_MODULE)
+	printk("plat: add ds1307 device\n");
+	i2c_register_board_info(DS1307_I2C_BUS, &ds1307_i2c_bdi, 1);
 #endif
 
 #if defined(CONFIG_RFKILL_NXP)
