@@ -33,7 +33,11 @@
 #include <linux/gpio.h>
 #include <linux/of_gpio.h>
 
-#include <linux/iio/iio.h>
+#include <mach/platform.h>
+#include <mach/devices.h>
+#include <mach/soc.h>
+
+#include "../iio.h"
 
 #define DRIVER_NAME	"dht11"
 
@@ -67,6 +71,7 @@ struct dht11 {
 	struct {s64 ts; int value; }	edges[DHT11_EDGES_PER_READ];
 };
 
+static int gpio = PAD_GPIO_B + 28;
 static unsigned char dht11_decode_byte(int *timing, int threshold)
 {
 	unsigned char ret = 0;
@@ -146,7 +151,7 @@ static int dht11_read_raw(struct iio_dev *iio_dev,
 	int ret;
 
 	if (dht11->timestamp + DHT11_DATA_VALID_TIME < iio_get_time_ns()) {
-		reinit_completion(&dht11->completion);
+		dht11->completion.done = 0;
 
 		dht11->num_edges = 0;
 		ret = gpio_direction_output(dht11->gpio, 0);
@@ -215,10 +220,14 @@ static irqreturn_t dht11_handle_irq(int irq, void *data)
 }
 
 static const struct iio_chan_spec dht11_chan_spec[] = {
-	{ .type = IIO_TEMP,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_PROCESSED), },
-	{ .type = IIO_HUMIDITYRELATIVE,
-		.info_mask_separate = BIT(IIO_CHAN_INFO_PROCESSED), }
+	{ 
+		.type = IIO_TEMP,
+	  	.processed_val = IIO_PROCESSED,
+	},
+	{ 
+		.type = IIO_HUMIDITYRELATIVE,
+	  	.processed_val = IIO_PROCESSED,
+	}
 };
 
 static const struct of_device_id dht11_dt_ids[] = {
@@ -230,12 +239,11 @@ MODULE_DEVICE_TABLE(of, dht11_dt_ids);
 static int dht11_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *node = dev->of_node;
 	struct dht11 *dht11;
 	struct iio_dev *iio;
-	int ret;
+	int ret = -1;
 
-	iio = devm_iio_device_alloc(dev, sizeof(*dht11));
+	iio = iio_allocate_device(sizeof(*dht11));
 	if (!iio) {
 		dev_err(dev, "Failed to allocate IIO device\n");
 		return -ENOMEM;
@@ -243,11 +251,9 @@ static int dht11_probe(struct platform_device *pdev)
 
 	dht11 = iio_priv(iio);
 	dht11->dev = dev;
+	dht11->gpio = gpio;
 
-	dht11->gpio = ret = of_get_gpio(node, 0);
-	if (ret < 0)
-		return ret;
-	ret = devm_gpio_request_one(dev, dht11->gpio, GPIOF_IN, pdev->name);
+	ret = gpio_request(dht11->gpio, pdev->name);
 	if (ret)
 		return ret;
 
@@ -275,7 +281,19 @@ static int dht11_probe(struct platform_device *pdev)
 	iio->channels = dht11_chan_spec;
 	iio->num_channels = ARRAY_SIZE(dht11_chan_spec);
 
-	return devm_iio_device_register(dev, iio);
+	return iio_device_register(iio);
+}
+
+static int dht11_remove(struct platform_device *pdev)
+{
+	struct iio_dev *iio = platform_get_drvdata(pdev);
+	struct dht11 *dht11 = iio_priv(iio);
+
+	iio_device_unregister(iio);
+	devm_free_irq(dht11->dev, dht11->irq, iio);
+	gpio_free(dht11->gpio);
+	iio_free_device(iio);
+	return 0;
 }
 
 static struct platform_driver dht11_driver = {
@@ -285,10 +303,47 @@ static struct platform_driver dht11_driver = {
 		.of_match_table = dht11_dt_ids,
 	},
 	.probe  = dht11_probe,
+	.remove = dht11_remove,
 };
 
-module_platform_driver(dht11_driver);
+void matrix_dht11_device_release(struct device *dev)
+{
+}
 
+static struct platform_device dht11_device = {
+	.name			= "dht11",
+	.id				= -1,
+	.num_resources	= 0,
+	.dev = {        
+        	.release 			= matrix_dht11_device_release,
+        }
+};
+
+static int __init dht11_init(void)
+{
+	int ret = -1;
+	
+	printk("plat: add device matrix-dht11, pin=%d\n", gpio);
+	if ((ret = platform_device_register(&dht11_device))) {
+		return ret;
+	}
+
+	if ((ret = platform_driver_register(&dht11_driver))) {
+		platform_device_unregister(&dht11_device);
+	}
+	return ret;
+}
+
+static void __exit dht11_exit(void)
+{
+	platform_driver_unregister(&dht11_driver);
+	platform_device_unregister(&dht11_device);
+	gpio = PAD_GPIO_B + 28;
+}
+
+module_init(dht11_init);
+module_exit(dht11_exit);
 MODULE_AUTHOR("Harald Geyer <harald@ccbib.org>");
 MODULE_DESCRIPTION("DHT11 humidity/temperature sensor driver");
 MODULE_LICENSE("GPL v2");
+module_param(gpio, int, 0644);
