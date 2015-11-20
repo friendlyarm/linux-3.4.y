@@ -56,8 +56,10 @@ static int w1_gpio_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	err = gpio_request(pdata->pin, "w1");
-	if (err)
+	if (err) {
+		dev_err(&pdev->dev, "failed to request GPIO %d\n", pdata->pin);
 		goto free_master;
+	}
 
 	master->data = pdata;
 	master->read_bit = w1_gpio_read_bit;
