@@ -1260,6 +1260,72 @@ struct pl022_config_chip spi0_info = {
 	.clkdelay = SSP_FEEDBACK_CLK_DELAY_1T,
 };
 
+#if defined(CONFIG_TOUCHSCREEN_ADS7846_MODULE)
+#include <linux/gpio.h>
+#include <linux/spi/ads7846.h>
+
+#define ADS_CS (PAD_GPIO_B + 30)
+#define ADS_IRQ (PAD_GPIO_B + 31)
+static int ads7846_get_pendown_state(void)
+{
+	return !gpio_get_value(ADS_IRQ);
+}
+
+static void spi0_ads7846_cs(u32 chipselect)
+{
+#if (CFG_SPI0_CS_GPIO_MODE)
+	if (nxp_soc_gpio_get_io_func(ADS_CS) != nxp_soc_gpio_get_altnum(ADS_CS))
+		nxp_soc_gpio_set_io_func(ADS_CS, nxp_soc_gpio_get_altnum(ADS_CS));
+
+	nxp_soc_gpio_set_io_dir(ADS_CS, 1);
+	nxp_soc_gpio_set_out_value(ADS_CS, chipselect);
+#else
+	;
+#endif
+}
+
+struct pl022_config_chip spi0_ads7846_info = {
+	/* available POLLING_TRANSFER, INTERRUPT_TRANSFER, DMA_TRANSFER */
+	.com_mode = CFG_SPI0_COM_MODE,
+	.iface = SSP_INTERFACE_MOTOROLA_SPI,
+	/* We can only act as master but SSP_SLAVE is possible in theory */
+	.hierarchy = SSP_MASTER,
+	/* 0 = drive TX even as slave, 1 = do not drive TX as slave */
+	.slave_tx_disable = 1,
+	.rx_lev_trig = SSP_RX_4_OR_MORE_ELEM,
+	.tx_lev_trig = SSP_TX_4_OR_MORE_EMPTY_LOC,
+	.ctrl_len = SSP_BITS_8,
+	.wait_state = SSP_MWIRE_WAIT_ZERO,
+	.duplex = SSP_MICROWIRE_CHANNEL_FULL_DUPLEX,
+	/*
+	 * This is where you insert a call to a function to enable CS
+	 * (usually GPIO) for a certain chip.
+	 */
+#if (CFG_SPI0_CS_GPIO_MODE)
+	.cs_control = spi0_ads7846_cs,
+#endif
+	.clkdelay = SSP_FEEDBACK_CLK_DELAY_1T,
+};
+
+static const struct ads7846_platform_data ads7846_ts_info = {
+	.model		= 7846,
+	.x_min		= 100,
+	.y_min		= 100,
+	.x_max		= 0x0fff,
+	.y_max		= 0x0fff,
+	.vref_mv	= 3300,
+	.x_plate_ohms	= 256,
+	.penirq_recheck_delay_usecs = 10,
+	.settle_delay_usecs = 100,
+	.keep_vref_on	= 1,
+	.pressure_max	= 1500,
+	.debounce_max	= 10,
+	.debounce_tol	= 30,
+	.debounce_rep	= 1,
+	.get_pendown_state	= ads7846_get_pendown_state,    
+};
+#endif
+
 static struct spi_board_info spi_plat_board[] __initdata = {
 	[0] = {
 		.modalias        = "spidev",    /* fixup */
@@ -1269,6 +1335,17 @@ static struct spi_board_info spi_plat_board[] __initdata = {
 		.controller_data = &spi0_info,
 		.mode            = SPI_MODE_3 | SPI_CPOL | SPI_CPHA,
 	},
+#if defined(CONFIG_TOUCHSCREEN_ADS7846_MODULE)	
+	[1] = {
+		.modalias        = "ads7846",    /* fixup */
+		.irq			 = ADS_IRQ + IRQ_GPIO_START,
+		.platform_data          = &ads7846_ts_info,
+		.max_speed_hz    = 800 * 1000,  /* max spi clock (SCK) speed in HZ */
+		.bus_num         = 0,           /* Note> set bus num, must be smaller than ARRAY_SIZE(spi_plat_device) */
+		.chip_select     = 1,           /* Note> set chip select num, must be smaller than spi cs_num */
+		.controller_data = &spi0_ads7846_info,
+	},
+#endif	
 };
 #endif
 
@@ -1619,6 +1696,10 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
+#if defined(CONFIG_TOUCHSCREEN_ADS7846_MODULE)
+	nxp_soc_gpio_set_io_pull_enb(ADS_IRQ, 1);
+	nxp_soc_gpio_set_io_pull_sel(ADS_IRQ, 1);
+#endif	
 	spi_register_board_info(spi_plat_board, ARRAY_SIZE(spi_plat_board));
 	printk("plat: register spidev\n");
 #endif

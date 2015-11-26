@@ -225,8 +225,9 @@ static void ads7846_restart(struct ads7846 *ts)
 static void __ads7846_disable(struct ads7846 *ts)
 {
 	ads7846_stop(ts);
+#ifndef CONFIG_PLAT_S5P4418_NANOPI2	
 	regulator_disable(ts->reg);
-
+#endif
 	/*
 	 * We know the chip's in low power mode since we always
 	 * leave it that way after every request
@@ -236,7 +237,9 @@ static void __ads7846_disable(struct ads7846 *ts)
 /* Must be called with ts->lock held */
 static void __ads7846_enable(struct ads7846 *ts)
 {
+#ifndef CONFIG_PLAT_S5P4418_NANOPI2
 	regulator_enable(ts->reg);
+#endif	
 	ads7846_restart(ts);
 }
 
@@ -1304,6 +1307,7 @@ static int __devinit ads7846_probe(struct spi_device *spi)
 
 	ads7846_setup_spi_msg(ts, pdata);
 
+#ifndef CONFIG_PLAT_S5P4418_NANOPI2
 	ts->reg = regulator_get(&spi->dev, "vcc");
 	if (IS_ERR(ts->reg)) {
 		err = PTR_ERR(ts->reg);
@@ -1316,7 +1320,7 @@ static int __devinit ads7846_probe(struct spi_device *spi)
 		dev_err(&spi->dev, "unable to enable regulator: %d\n", err);
 		goto err_put_regulator;
 	}
-
+#endif
 	irq_flags = pdata->irq_flags ? : IRQF_TRIGGER_FALLING;
 	irq_flags |= IRQF_ONESHOT;
 
@@ -1333,7 +1337,11 @@ static int __devinit ads7846_probe(struct spi_device *spi)
 
 	if (err) {
 		dev_dbg(&spi->dev, "irq %d busy?\n", spi->irq);
+#ifndef CONFIG_PLAT_S5P4418_NANOPI2
 		goto err_disable_regulator;
+#else
+		goto err_free_gpio;
+#endif		
 	}
 
 	err = ads784x_hwmon_register(spi, ts);
@@ -1369,10 +1377,12 @@ static int __devinit ads7846_probe(struct spi_device *spi)
 	ads784x_hwmon_unregister(spi, ts);
  err_free_irq:
 	free_irq(spi->irq, ts);
+#ifndef CONFIG_PLAT_S5P4418_NANOPI2
  err_disable_regulator:
 	regulator_disable(ts->reg);
  err_put_regulator:
 	regulator_put(ts->reg);
+#endif	
  err_free_gpio:
 	if (!ts->get_pendown_state)
 		gpio_free(ts->gpio_pendown);
@@ -1401,8 +1411,10 @@ static int __devexit ads7846_remove(struct spi_device *spi)
 
 	ads784x_hwmon_unregister(spi, ts);
 
+#ifndef CONFIG_PLAT_S5P4418_NANOPI2
 	regulator_disable(ts->reg);
 	regulator_put(ts->reg);
+#endif
 
 	if (!ts->get_pendown_state) {
 		/*
