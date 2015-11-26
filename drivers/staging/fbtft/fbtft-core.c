@@ -130,7 +130,7 @@ static int fbtft_request_gpios(struct fbtft_par *par)
 		gpio = pdata->gpios;
 		while (gpio->name[0]) {
 			// printk("gpio:%s\n", gpio->name);
-			if(!strcmp(gpio->name, "cs")) {		// skip cs for samsung spi driver has occupy
+			if(!strcmp(gpio->name, "cs")) {		// skip cs for  spi driver has occupy
 				gpio++;
 				continue;
 			}	
@@ -157,6 +157,30 @@ static int fbtft_request_gpios(struct fbtft_par *par)
 					__func__, gpio->name, gpio->gpio);
 			}
 			gpio++;
+		}
+	}
+
+	return 0;
+}
+
+static int fbtft_free_gpios(struct fbtft_par *par)
+{
+	struct fbtft_platform_data *pdata = par->pdata;
+	const struct fbtft_gpio *gpio;
+
+	if (pdata && pdata->gpios) {
+		gpio = pdata->gpios;
+		while (gpio->name[0]) {
+			// printk("gpio:%s\n", gpio->name);
+			if(!strcmp(gpio->name, "cs")) {		// skip cs for  spi driver has occupy
+				gpio++;
+				continue;
+			}	
+			gpio_free(gpio->gpio);
+			fbtft_par_dbg(DEBUG_REQUEST_GPIOS, par,
+				"%s: '%s' = GPIO%d\n",
+				__func__, gpio->name, gpio->gpio);
+			gpio++;	
 		}
 	}
 
@@ -898,6 +922,7 @@ struct fb_info *fbtft_framebuffer_alloc(struct fbtft_display *display,
 	par->fbtftops.mkdirty = fbtft_mkdirty;
 	par->fbtftops.update_display = fbtft_update_display;
 	par->fbtftops.request_gpios = fbtft_request_gpios;
+	par->fbtftops.free_gpios = fbtft_free_gpios;
 	if (display->backlight)
 		par->fbtftops.register_backlight = fbtft_register_backlight;
 
@@ -1050,6 +1075,8 @@ int fbtft_unregister_framebuffer(struct fb_info *fb_info)
 		platform_set_drvdata(par->pdev, NULL);
 	if (par->fbtftops.unregister_backlight)
 		par->fbtftops.unregister_backlight(par);
+	if (par->fbtftops.free_gpios(par))
+		par->fbtftops.free_gpios(par);
 	fbtft_sysfs_exit(par);
 	return unregister_framebuffer(fb_info);
 }
