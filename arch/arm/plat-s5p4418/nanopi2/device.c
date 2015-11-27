@@ -1502,8 +1502,10 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_NXPMAC_ETH)
-	printk("plat: add device nxp-gmac\n");
-	platform_device_register(&nxp_gmac_dev);
+	if (board_is_nanopc()) {
+		printk("plat: add device nxp-gmac\n");
+		platform_device_register(&nxp_gmac_dev);
+	}
 #endif
 
 #if defined(CONFIG_PPM_NXP)
