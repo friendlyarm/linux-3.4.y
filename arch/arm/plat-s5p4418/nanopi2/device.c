@@ -1351,6 +1351,34 @@ static struct platform_device hdmi_cec_device = {
 #endif /* CONFIG_NXP_HDMI_CEC */
 
 /*------------------------------------------------------------------------------
+ * LED
+ */
+#if defined(CONFIG_LEDS_GPIO)
+#include <linux/leds.h>
+
+static struct gpio_led board_leds[] = {
+	{
+		.name		= "led1",
+		.gpio		= (PAD_GPIO_B + 12),
+		.default_trigger	= "heartbeat",
+	},
+};
+
+static struct gpio_led_platform_data gpio_led_pdata = {
+	.num_leds	= ARRAY_SIZE(board_leds),
+	.leds		= board_leds,
+};
+
+static struct platform_device gpio_led_device = {
+	.name		= "leds-gpio",
+	.id			= -1,
+	.dev		= {
+		.platform_data	= &gpio_led_pdata,
+	},
+};
+#endif
+
+/*------------------------------------------------------------------------------
  * HW revision
  */
 #include <asm/system_info.h>
@@ -1511,6 +1539,11 @@ void __init nxp_board_devices_register(void)
 #if defined(CONFIG_PPM_NXP)
 	printk("plat: add device ppm\n");
 	platform_device_register(&ppm_device);
+#endif
+
+#if defined(CONFIG_LEDS_GPIO)
+	printk("plat: add device gpio_led\n");
+	platform_device_register(&gpio_led_device);
 #endif
 
 	/* END */
