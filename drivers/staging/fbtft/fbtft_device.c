@@ -1181,6 +1181,28 @@ static struct fbtft_device_display displays[] = {
 				},
 			}
 		}
+	}, {
+		.name = "matrix-compact_kit",
+		.spi = &(struct spi_board_info) {
+			.modalias = "fb_st7735s",
+			.max_speed_hz = 32000000,
+			.bus_num                = 0,
+		    .chip_select            = 2,		// third spi dev
+			.mode = SPI_MODE_0,
+			.controller_data= &spi0_info,
+			.platform_data = &(struct fbtft_platform_data) {
+				.display = {				
+					.buswidth = 8,
+					.backlight = 1,
+				},
+				.gpios = (const struct fbtft_gpio []) {
+					{ "reset", -1 },
+					{ "dc", -1 },
+					{ "led", -1 },
+					{},
+				},
+			}
+		}
 	}
 };
 
