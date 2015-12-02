@@ -653,5 +653,11 @@ config MATRIX_HCSR04
 	---help---
 	  Driver for Matrix hcsr04.
 
+config MATRIX_ADS7846
+	tristate "Matrix ads7846/xpt2046"
+	default m
+	---help---
+	  Device info for Matrix ads7846/xpt2046.
+
 endmenu
 
