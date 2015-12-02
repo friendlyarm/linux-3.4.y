@@ -48,7 +48,7 @@ static int init_display(struct fbtft_par *par)
 
 	/* startup sequence for MI0283QT-9A */
 	write_reg(par, 0x01); /* software reset */
-	mdelay(5);
+	mdelay(120);
 	write_reg(par, 0x28); /* display off */
 
 	/* --------------------------------------------------------- */

@@ -1160,7 +1160,7 @@ static struct fbtft_device_display displays[] = {
 		},
 		},
 	}, {
-		.name = "matrix-spi_tft",
+		.name = "matrix-st7789s",
 		.spi = &(struct spi_board_info) {
 			.modalias = "fb_st7789s",
 			.max_speed_hz = 50000000,
@@ -1182,7 +1182,7 @@ static struct fbtft_device_display displays[] = {
 			}
 		}
 	}, {
-		.name = "matrix-compact_kit",
+		.name = "matrix-st7735s",
 		.spi = &(struct spi_board_info) {
 			.modalias = "fb_st7735s",
 			.max_speed_hz = 32000000,
