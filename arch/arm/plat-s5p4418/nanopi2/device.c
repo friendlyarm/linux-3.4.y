@@ -1360,6 +1360,7 @@ static struct gpio_led board_leds[] = {
 	{
 		.name		= "led1",
 		.gpio		= (PAD_GPIO_B + 12),
+		.active_low	= 1,
 		.default_trigger	= "heartbeat",
 	},
 };
