@@ -193,6 +193,10 @@
 #define CFG_I2C2_CLK							200000	/* TOUCH */
 #define CFG_I2C3_CLK							100000
 
+#define CFG_I2C0_RETRY_CNT						2
+#define CFG_I2C1_RETRY_CNT						2
+#define CFG_I2C2_RETRY_CNT						2
+
 /*------------------------------------------------------------------------------
  * 	SPI
  */
