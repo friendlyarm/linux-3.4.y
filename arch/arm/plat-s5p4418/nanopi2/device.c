@@ -694,6 +694,7 @@ static struct platform_device *i2c_devices[] = {
 static struct regulator_consumer_supply fixed_dummy_supplies[] = {
 	REGULATOR_SUPPLY("vdd_arm_1.3V", NULL),
 	REGULATOR_SUPPLY("vdd_ddr_1.6V", NULL),
+	REGULATOR_SUPPLY("vcam1_1.8V",   NULL),
 };
 
 struct regulator_init_data fixed_dummy_initdata = {
@@ -731,14 +732,22 @@ static struct platform_device fixed_supply_dummy_device = {
 
 static int camera_common_set_clock(ulong clk_rate)
 {
+#ifndef CONFIG_VIDEO_OV5640
 	PM_DBGOUT("%s: %d\n", __func__, (int)clk_rate);
 	if (clk_rate > 0)
 		nxp_soc_pwm_set_frequency(1, clk_rate, 50);
 	else
 		nxp_soc_pwm_set_frequency(1, 0, 0);
 	msleep(1);
+#endif
 	return 0;
 }
+
+#if defined(CONFIG_VIDEO_OV5640)
+#define CAMERA_USE_VID0		1
+#elif defined(CONFIG_VIDEO_SP2518)
+#define CAMERA_USE_VID1		1
+#endif
 
 static bool is_camera_port_configured = false;
 static void camera_common_vin_setup_io(int module, bool force)
@@ -750,10 +759,9 @@ static void camera_common_vin_setup_io(int module, bool force)
 		int i, len;
 		u_int io, fn;
 
-		/* VIP0:0 = VCLK, VID0 ~ 7 */
 		const u_int port[][2] = {
-#if 0
-			/* VCLK, HSYNC, VSYNC */
+#ifdef CAMERA_USE_VID0
+			/* VIP1:0 = VCLK, VID0 ~ 7 */
 			{ PAD_GPIO_E +  4, NX_GPIO_PADFUNC_1 },
 			{ PAD_GPIO_E +  5, NX_GPIO_PADFUNC_1 },
 			{ PAD_GPIO_E +  6, NX_GPIO_PADFUNC_1 },
@@ -763,7 +771,8 @@ static void camera_common_vin_setup_io(int module, bool force)
 			{ PAD_GPIO_E +  0, NX_GPIO_PADFUNC_1 }, { PAD_GPIO_E +  1, NX_GPIO_PADFUNC_1 },
 			{ PAD_GPIO_E +  2, NX_GPIO_PADFUNC_1 }, { PAD_GPIO_E +  3, NX_GPIO_PADFUNC_1 },
 #endif
-			/* VCLK, HSYNC, VSYNC */
+#ifdef CAMERA_USE_VID1
+			/* VIP0:0 = VCLK, VID0 ~ 7 */
 			{ PAD_GPIO_A + 28, NX_GPIO_PADFUNC_1 },
 			{ PAD_GPIO_E + 13, NX_GPIO_PADFUNC_2 },
 			{ PAD_GPIO_E +  7, NX_GPIO_PADFUNC_2 },
@@ -772,6 +781,7 @@ static void camera_common_vin_setup_io(int module, bool force)
 			{ PAD_GPIO_B +  2, NX_GPIO_PADFUNC_1 }, { PAD_GPIO_B +  4, NX_GPIO_PADFUNC_1 },
 			{ PAD_GPIO_B +  6, NX_GPIO_PADFUNC_1 }, { PAD_GPIO_B +  8, NX_GPIO_PADFUNC_1 },
 			{ PAD_GPIO_B +  9, NX_GPIO_PADFUNC_1 }, { PAD_GPIO_B + 10, NX_GPIO_PADFUNC_1 },
+#endif
 		};
 
 		printk("%s\n", __func__);
@@ -793,6 +803,7 @@ static void camera_common_vin_setup_io(int module, bool force)
 static bool camera_power_enabled = false;
 static void camera_power_control(int enable)
 {
+#ifndef CONFIG_VIDEO_OV5640
     struct regulator *cam_core_18V = NULL;
 
     if (enable && camera_power_enabled)
@@ -813,23 +824,31 @@ static void camera_power_control(int enable)
     }
 
     regulator_put(cam_core_18V);
+#endif
 
     camera_power_enabled = enable ? true : false;
 }
 
 static bool is_back_camera_enabled = false;
 static bool is_back_camera_power_state_changed = false;
-static bool is_front_camera_enabled = false;
-static bool is_front_camera_power_state_changed = false;
 
+static bool is_front_camera_enabled = false;
+#if defined(CONFIG_VIDEO_SP0838)
+static bool is_front_camera_power_state_changed = false;
 static int front_camera_power_enable(bool on);
+#endif
+
 static int back_camera_power_enable(bool on)
 {
 	unsigned int io = CFG_IO_CAMERA_BACK_POWER_DOWN;
 	unsigned int reset_io = CFG_IO_CAMERA_RESET;
+
 	PM_DBGOUT("%s: is_back_camera_enabled %d, on %d\n", __func__, is_back_camera_enabled, on);
+
 	if (on) {
+#if defined(CONFIG_VIDEO_SP0838)
 		front_camera_power_enable(0);
+#endif
 		if (!is_back_camera_enabled) {
 			camera_power_control(1);
 			/* PD signal */
@@ -884,15 +903,23 @@ static bool back_camera_power_state_changed(void)
 }
 
 static struct i2c_board_info back_camera_i2c_boardinfo[] = {
+#if defined(CONFIG_VIDEO_OV5640)
+	{
+		I2C_BOARD_INFO("ov5640", (0x78 >> 1)),
+	},
+#elif defined(CONFIG_VIDEO_SP2518)
 	{
 		I2C_BOARD_INFO("SP2518", 0x60>>1),
 	},
+#endif
 };
 
+#if defined(CONFIG_VIDEO_SP0838)
 static int front_camera_power_enable(bool on)
 {
 	unsigned int io = CFG_IO_CAMERA_FRONT_POWER_DOWN;
 	unsigned int reset_io = CFG_IO_CAMERA_RESET;
+
 	PM_DBGOUT("%s: is_front_camera_enabled %d, on %d\n", __func__, is_front_camera_enabled, on);
 	if (on) {
 		back_camera_power_enable(0);
@@ -948,11 +975,14 @@ static bool front_camera_power_state_changed(void)
 {
 	return is_front_camera_power_state_changed;
 }
+#endif
 
 static struct i2c_board_info front_camera_i2c_boardinfo[] = {
+#if defined(CONFIG_VIDEO_SP0838)
 	{
 		I2C_BOARD_INFO("SP0838", 0x18),
 	},
+#endif
 };
 
 static struct nxp_v4l2_i2c_board_info sensor[] = {
@@ -967,6 +997,41 @@ static struct nxp_v4l2_i2c_board_info sensor[] = {
 };
 
 static struct nxp_capture_platformdata capture_plat_data[] = {
+#if defined(CONFIG_VIDEO_OV5640)
+	{
+		/* back_camera 656 interface */
+		.module = 1,
+		.sensor = &sensor[0],
+		.type = NXP_CAPTURE_INF_PARALLEL,
+		.parallel = {
+			/* for 656 */
+			.is_mipi        = false,
+			.external_sync  = false, /* 656 interface */
+			.h_active       = 640,
+			.h_frontporch   = 0,
+			.h_syncwidth    = 0,
+			.h_backporch    = 2,
+			.v_active       = 480,
+			.v_frontporch   = 0,
+			.v_syncwidth    = 0,
+			.v_backporch    = 13,
+			.clock_invert   = false,
+			.port           = 0,
+			.data_order     = NXP_VIN_CBY0CRY1,
+			.interlace      = false,
+			.clk_rate       = 24000000,
+			.late_power_down = true,
+			.power_enable   = NULL,
+			.power_state_changed = back_camera_power_state_changed,
+			.set_clock      = camera_common_set_clock,
+			.setup_io       = camera_common_vin_setup_io,
+		},
+		.deci = {
+			.start_delay_ms = 0,
+			.stop_delay_ms  = 0,
+		},
+	},
+#elif defined(CONFIG_VIDEO_SP2518)
 	{
 		/* back_camera 656 interface */
 		.module = 0,
@@ -1000,6 +1065,8 @@ static struct nxp_capture_platformdata capture_plat_data[] = {
 			.stop_delay_ms  = 0,
 		},
 	},
+#endif
+#if defined(CONFIG_VIDEO_SP0838)
 	{
 		/* front_camera 601 interface */
 		.module = 0,
@@ -1032,6 +1099,7 @@ static struct nxp_capture_platformdata capture_plat_data[] = {
 			.stop_delay_ms  = 0,
 		},
 	},
+#endif
 	{ 0, NULL, 0, },
 };
 
@@ -1492,6 +1560,8 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_V4L2_NXP) || defined(CONFIG_V4L2_NXP_MODULE)
 	printk("plat: add device nxp-v4l2\n");
+	back_camera_power_enable(1);
+	is_back_camera_power_state_changed = false;
 	platform_device_register(&nxp_v4l2_dev);
 #endif
 

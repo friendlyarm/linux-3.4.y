@@ -80,9 +80,9 @@
 #define PAD_GPIOB11     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: CLE           ,1: CLE1                ,2: GPIO                ,3:_                    =
 #define PAD_GPIOB12     (PAD_MODE_OUT | PAD_FUNC_ALT2 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: ALE           ,1: ALE1                ,2: GPIO                ,3:_                    =
 #define PAD_GPIOB13     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_SD[0]    ,1: GPIO                ,2:_                    ,3:_                    =
-#define PAD_GPIOB14     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_RnB      ,1: MCUS_RnB1           ,2: GPIO                ,3:_                    =
+#define PAD_GPIOB14     (PAD_MODE_OUT | PAD_FUNC_ALT2 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_RnB      ,1: MCUS_RnB1           ,2: GPIO                ,3:_                    =
 #define PAD_GPIOB15     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_SD[1]    ,1: GPIO                ,2:_                    ,3:_                    =
-#define PAD_GPIOB16     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_nNOFE    ,1: MCUS_nNOFE1         ,2: GPIO                ,3:_                    =
+#define PAD_GPIOB16     (PAD_MODE_OUT | PAD_FUNC_ALT2 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_nNOFE    ,1: MCUS_nNOFE1         ,2: GPIO                ,3:_                    =
 #define PAD_GPIOB17     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_SD[2]    ,1: GPIO                ,2:_                    ,3:_                    =
 #define PAD_GPIOB18     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_nNFWE    ,1: MCUS_nNFWE1         ,2: GPIO                ,3:_                    =
 #define PAD_GPIOB19     (PAD_MODE_ALT | PAD_FUNC_ALT0 | PAD_LEVEL_LOW  | PAD_PULL_OFF | PAD_STRENGTH_0)     // 0: MCUS_SD[3]    ,1: GPIO                ,2:_                    ,3:_                    =
@@ -245,7 +245,7 @@
 /*------------------------------------------------------------------------------
  *	CAMERA Back Power Down PN
  */
-#define CFG_IO_CAMERA_BACK_POWER_DOWN		((PAD_GPIO_C + 4) | PAD_FUNC_ALT0)
+#define CFG_IO_CAMERA_BACK_POWER_DOWN		((PAD_GPIO_B + 14) | PAD_FUNC_ALT0)
 
 /*------------------------------------------------------------------------------
  *	CAMERA Front Power Down PD
@@ -255,7 +255,7 @@
 /*------------------------------------------------------------------------------
  *	CAMERA Reset
  */
-#define CFG_IO_CAMERA_RESET					((PAD_GPIO_C + 5) | PAD_FUNC_ALT0)		/* GPIO */
+#define CFG_IO_CAMERA_RESET					((PAD_GPIO_B + 16) | PAD_FUNC_ALT0)		/* GPIO */
 
 /*------------------------------------------------------------------------------
  *	AUDIO AMP for es8316
