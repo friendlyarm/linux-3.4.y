@@ -200,7 +200,7 @@
 /*------------------------------------------------------------------------------
  * 	SPI
  */
-#define CFG_SPI0_CLK							(10000000*10)
+#define CFG_SPI0_CLK							(10000000*5)		// spiclk = CFG_SPI0_CLK / 2
 #define CFG_SPI1_CLK							10000000
 #define CFG_SPI2_CLK							10000000
 

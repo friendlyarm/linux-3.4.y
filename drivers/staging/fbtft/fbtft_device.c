@@ -222,7 +222,7 @@ static void spi0_cs(u32 chipselect)
 
 struct pl022_config_chip spi0_info = {
 	/* available POLLING_TRANSFER, INTERRUPT_TRANSFER, DMA_TRANSFER */
-	.com_mode = CFG_SPI0_COM_MODE,
+	.com_mode = 0,				/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */ 
 	.iface = SSP_INTERFACE_MOTOROLA_SPI,
 	/* We can only act as master but SSP_SLAVE is possible in theory */
 	.hierarchy = SSP_MASTER,
@@ -1163,7 +1163,7 @@ static struct fbtft_device_display displays[] = {
 		.name = "matrix-st7789s",
 		.spi = &(struct spi_board_info) {
 			.modalias = "fb_st7789s",
-			.max_speed_hz = 50000000,
+			.max_speed_hz = 25000000,
 			.bus_num                = 0,
 		    .chip_select            = 2,		// third spi dev
 			.mode = SPI_MODE_0,
