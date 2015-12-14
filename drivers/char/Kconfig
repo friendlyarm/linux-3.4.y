@@ -659,5 +659,11 @@ config MATRIX_ADS7846
 	---help---
 	  Device info for Matrix ads7846/xpt2046.
 
+config MATRIX_IR_RECV
+	tristate "Matrix ir receiver"
+	default m
+	---help---
+	  Device info for Matrix ir receiver.
+
 endmenu
 

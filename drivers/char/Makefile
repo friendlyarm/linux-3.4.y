@@ -71,3 +71,4 @@ obj-$(CONFIG_MATRIX_PWM)	+= matrix_pwm.o
 obj-$(CONFIG_MATRIX_ROTARY_ENCODER)	+= matrix_rotary_encoder.o
 obj-$(CONFIG_MATRIX_HCSR04) 	+= matrix_hcsr04.o
 obj-$(CONFIG_MATRIX_ADS7846)	+= matrix_ads7846.o
+obj-$(CONFIG_MATRIX_IR_RECV)	+= matrix_ir_recv.o
