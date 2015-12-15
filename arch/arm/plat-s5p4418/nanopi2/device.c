@@ -679,8 +679,8 @@ void __init nxp_reserve_mem(void)
 #if defined(CONFIG_I2C_NXP_PORT3)
 #define I2CUDELAY(x)	(1000000/x)
 /* gpio i2c 3 */
-#define	I2C3_SCL	(PAD_GPIO_D + 20)
-#define	I2C3_SDA	(PAD_GPIO_D + 16)
+#define	I2C3_SCL	(PAD_GPIO_E + 30)
+#define	I2C3_SDA	(PAD_GPIO_E + 31)
 
 static struct i2c_gpio_platform_data nxp_i2c_gpio_port3 = {
 	.sda_pin	= I2C3_SDA,
@@ -1504,7 +1504,7 @@ void __init nxp_board_devices_register(void)
 
 	board_hwrev_init();
 
-	if (board_is_nanopc()) {
+	if (board_is_nanopc() || board_is_smart4418()) {
 #ifdef CONFIG_MMC_NXP_CH2
 		board_fixup_dwmci2();
 #endif
@@ -1556,14 +1556,16 @@ void __init nxp_board_devices_register(void)
 	platform_device_register(&key_plat_device);
 #endif
 
-#if defined(CONFIG_I2C_NXP_PORT3)
-	platform_add_devices(i2c_devices, ARRAY_SIZE(i2c_devices));
-#endif
-
+	if (board_is_nanopi()) {
 #if defined(CONFIG_REGULATOR_FIXED_VOLTAGE)
-	printk("plat: add device fixed voltage\n");
-	platform_device_register(&fixed_supply_dummy_device);
+		printk("plat: add device fixed voltage\n");
+		platform_device_register(&fixed_supply_dummy_device);
 #endif
+	} else {
+#if defined(CONFIG_I2C_NXP_PORT3)
+		platform_add_devices(i2c_devices, ARRAY_SIZE(i2c_devices));
+#endif
+	}
 
 #if defined(CONFIG_SND_SPDIF_TRANSCIEVER) || defined(CONFIG_SND_SPDIF_TRANSCIEVER_MODULE)
 	printk("plat: add device spdif playback\n");
@@ -1572,9 +1574,11 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
-	printk("plat: add device asoc-es8316\n");
-	i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
-	platform_device_register(&es8316_dai);
+	if (board_is_nanopc() || board_is_smart4418()) {
+		printk("plat: add device asoc-es8316\n");
+		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
+		platform_device_register(&es8316_dai);
+	}
 #endif
 
 #if defined(CONFIG_V4L2_NXP) || defined(CONFIG_V4L2_NXP_MODULE)
@@ -1625,7 +1629,7 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_NXPMAC_ETH)
-	if (board_is_nanopc()) {
+	if (board_is_nanopc() || board_is_smart4418()) {
 		printk("plat: add device nxp-gmac\n");
 		platform_device_register(&nxp_gmac_dev);
 	}

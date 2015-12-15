@@ -25,8 +25,7 @@
 #include "axp-regu.h"
 
 /* Reverse engineered partly from Platformx drivers */
-enum axp_regls{
-
+enum axp_regls {
 	vcc_ldo1,
 	vcc_ldo2,
 	vcc_ldo3,
@@ -606,9 +605,7 @@ static struct axp_platform_data axp_pdata = {
 	.gpio_base = 0,
 };
 
-
 static struct i2c_board_info __initdata axp_mfd_i2c_board_info[] = {
-
 	{
 		.type = "axp22_mfd",
 		.addr = AXP_DEVICES_ADDR,
@@ -619,7 +616,8 @@ static struct i2c_board_info __initdata axp_mfd_i2c_board_info[] = {
 
 static int __init axp22_board_init(void)
 {
-        return i2c_register_board_info(AXP_I2CBUS, axp_mfd_i2c_board_info, ARRAY_SIZE(axp_mfd_i2c_board_info));
+	return i2c_register_board_info(AXP_I2CBUS,
+			axp_mfd_i2c_board_info, ARRAY_SIZE(axp_mfd_i2c_board_info));
 }
 arch_initcall(axp22_board_init);
 
