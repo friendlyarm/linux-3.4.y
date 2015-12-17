@@ -2708,7 +2708,7 @@ static int wl_cfgp2p_do_ioctl(struct net_device *net, struct ifreq *ifr, int cmd
 		ret = wl_android_priv_cmd(ndev, ifr, cmd);
 
 	} else {
-		CFGP2P_ERR(("%s: IOCTL req 0x%x on p2p0 I/F. Ignoring. \n",
+		CFGP2P_DBG(("%s: IOCTL req 0x%x on p2p0 I/F. Ignoring. \n",
 		__FUNCTION__, cmd));
 		return -1;
 	}

@@ -27,7 +27,7 @@
 
 int wifi_pm_gpio_ctrl(char* name, int level)
 {
-	printk("wifi_pm: %s: %d\n", name, level);
+	printk(KERN_DEBUG "wifi_pm: %s: %d\n", name, level);
 
 	nxp_soc_gpio_set_out_value(CFG_WIFI_POWER_IO, level);
 	msleep(50);
