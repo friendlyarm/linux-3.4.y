@@ -5377,7 +5377,7 @@ void wl_cfg80211_update_power_mode(struct net_device *dev)
 {
 	int err, pm = -1;
 
-	err = wldev_ioctl(dev, WLC_GET_PM, &pm, sizeof(pm), true);
+	err = wldev_ioctl(dev, WLC_GET_PM, &pm, sizeof(pm), false);
 	if (err)
 		WL_ERR(("%s:error (%d)\n", __FUNCTION__, err));
 	else if (pm != -1 && dev->ieee80211_ptr)
