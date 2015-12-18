@@ -78,7 +78,7 @@ static void spi0_ads7846_cs(u32 chipselect)
 
 struct pl022_config_chip spi0_ads7846_info = {
 	/* available POLLING_TRANSFER, INTERRUPT_TRANSFER, DMA_TRANSFER */
-	.com_mode = 1,							/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
+	.com_mode = 0,							/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
 	.iface = SSP_INTERFACE_MOTOROLA_SPI,
 	/* We can only act as master but SSP_SLAVE is possible in theory */
 	.hierarchy = SSP_MASTER,

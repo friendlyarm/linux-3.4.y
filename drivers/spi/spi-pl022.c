@@ -394,6 +394,7 @@ struct pl022 {
 	char				*dummypage;
 	bool				dma_running;
 #endif
+	struct completion   xfer_completion;
 };
 
 /**
@@ -498,6 +499,7 @@ static void giveback(struct pl022 *pl022)
 	/* disable the SPI/SSP operation */
 	writew((readw(SSP_CR1(pl022->virtbase)) &
 		(~SSP_CR1_MASK_SSE)), SSP_CR1(pl022->virtbase));
+	complete(&pl022->xfer_completion);	
 }
 
 /**
@@ -1508,6 +1510,8 @@ static int pl022_transfer_one_message(struct spi_master *master,
 	struct pl022 *pl022 = spi_master_get_devdata(master);
 	static int last_chip_id = 0;
 
+	INIT_COMPLETION(pl022->xfer_completion);
+
 	/* Initial message state */
 	pl022->cur_msg = msg;
 	msg->state = STATE_START;
@@ -1532,6 +1536,14 @@ static int pl022_transfer_one_message(struct spi_master *master,
 	else
 		do_interrupt_dma_transfer(pl022);
 
+	if (!wait_for_completion_timeout(&pl022->xfer_completion, HZ)) {
+		printk("%s timeout\n", __func__);
+		writew(DISABLE_ALL_INTERRUPTS, SSP_IMSC(pl022->virtbase));
+		writew(CLEAR_ALL_INTERRUPTS, SSP_ICR(pl022->virtbase));
+		pl022->cur_msg->state = STATE_ERROR;
+		tasklet_schedule(&pl022->pump_transfers);
+	}
+	
 	return 0;
 }
 
@@ -2153,6 +2165,8 @@ pl022_probe(struct amba_device *adev, const struct amba_id *id)
 	} else {
 		pm_runtime_put(dev);
 	}
+	
+	init_completion(&pl022->xfer_completion);
 	return 0;
 
  err_spi_register:
