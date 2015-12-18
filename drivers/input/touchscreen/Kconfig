@@ -940,4 +940,30 @@ config TOUCHSCREEN_GOODIX
           Say Y here if you have the GOODIX touchscreen.
 
           If unsure, say N.
+
+config TOUCHSCREEN_1WIRE
+	tristate "1-Wire host and Touch Screen Driver"
+	depends on PLAT_S5P4418_NANOPI2
+	help
+	  Say Y here to enable the 1-Wire host and Touch Screen driver for
+	  FriendlyARM NanoPi2 development board.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called 1wire_host.
+
+config AUTO_REPORT_1WIRE_INPUT
+	tristate "Auto report 1wire data to input system"
+	depends on PLAT_S5P4418_NANOPI2
+	default n
+	help
+	  Say Y here to enable auto report 1wire touch data to input system.
+
+	  If unsure, say N.
+
+config TOUCHSCREEN_IF
+	bool
+	default y if TOUCHSCREEN_1WIRE
+
 endif

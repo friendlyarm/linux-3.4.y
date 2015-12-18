@@ -67,6 +67,8 @@ extern void 		nxp_soc_alive_clr_int_pend(unsigned int io);
  * 	PWM interface functions for nexell cpu
  *
  */
+void 			nxp_soc_pwm_start(int ch, int irqon);
+void 			nxp_soc_pwm_stop(int ch, int irqon);
 unsigned long	nxp_soc_pwm_set_frequency(int ch, unsigned int request, unsigned int duty);
 void 			nxp_soc_pwm_get_frequency(int ch, unsigned int *freq, unsigned int *duty);
 

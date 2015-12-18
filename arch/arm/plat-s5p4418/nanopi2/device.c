@@ -512,6 +512,25 @@ static struct i2c_board_info __initdata ft5x0x_i2c_bdi = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_1WIRE)
+#include <linux/platform_data/touchscreen-one-wire.h>
+
+static struct ts_onewire_platform_data onewire_ts_pdata = {
+	.timer_irq	= IRQ_PHY_PWM_INT3,
+	.pwm_id		= 3,
+	.pwm_reg_tint = (volatile void *)(IO_ADDRESS(PHY_BASEADDR_PWM) + 0x44),
+	.gpio		= (PAD_GPIO_C + 15),
+};
+
+static struct platform_device onewire_device = {
+	.name		= "onewire_ts",
+	.id			= -1,
+	.dev		= {
+		.platform_data	= &onewire_ts_pdata,
+	},
+};
+#endif
+
 /*------------------------------------------------------------------------------
  * Keypad platform device
  */
@@ -1580,6 +1599,11 @@ void __init nxp_board_devices_register(void)
 	ft5x0x_pdata.screen_max_x = lcd->width;
 	ft5x0x_pdata.screen_max_y = lcd->height;
 	i2c_register_board_info(FT5X0X_I2C_BUS, &ft5x0x_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_1WIRE)
+	printk("plat: add onewire ts device\n");
+	platform_device_register(&onewire_device);
 #endif
 
 #if defined(CONFIG_SENSORS_MMA865X) || defined(CONFIG_SENSORS_MMA865X_MODULE)

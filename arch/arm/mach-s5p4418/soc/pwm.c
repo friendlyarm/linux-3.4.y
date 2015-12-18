@@ -219,6 +219,18 @@ static void pwm_set_device(struct pwm_device *pwm)
 	_UNLOCK_(ch);
 }
 
+void nxp_soc_pwm_start(int ch, int irqon)
+{
+	pwm_start(ch, irqon);
+}
+EXPORT_SYMBOL_GPL(nxp_soc_pwm_start);
+
+void nxp_soc_pwm_stop(int ch, int irqon)
+{
+	pwm_stop(ch, irqon);
+}
+EXPORT_SYMBOL_GPL(nxp_soc_pwm_stop);
+
 /*------------------------------------------------------------------------------
  * 	Description	: set pwm frequncy, and save frequency info
  *	In[ch]		: pwm channel, 0 ~ 3
