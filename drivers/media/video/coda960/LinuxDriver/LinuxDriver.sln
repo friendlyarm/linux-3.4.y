@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LinuxDriver", "LinuxDriver.vcxproj", "{8CD9EB54-DF63-45AD-B95F-BFA97769FBC9}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VpuLibrary", "VpuLibrary\VpuLibrary.vcxproj", "{DB88F7AC-A976-49DB-8F99-97D5FA427538}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommomLibrary", "CommomLibrary\CommomLibrary.vcxproj", "{5F2ECE13-16D5-415B-8FE5-C6E5B2E1F239}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestApp", "TestApp\TestApp.vcxproj", "{AA69EC14-23E9-4590-B007-9AA190AA9A45}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8CD9EB54-DF63-45AD-B95F-BFA97769FBC9}.Debug|Win32.ActiveCfg = Release|Win32
+		{8CD9EB54-DF63-45AD-B95F-BFA97769FBC9}.Release|Win32.ActiveCfg = Release|Win32
+		{DB88F7AC-A976-49DB-8F99-97D5FA427538}.Debug|Win32.ActiveCfg = Release|Win32
+		{DB88F7AC-A976-49DB-8F99-97D5FA427538}.Release|Win32.ActiveCfg = Release|Win32
+		{5F2ECE13-16D5-415B-8FE5-C6E5B2E1F239}.Debug|Win32.ActiveCfg = Release|Win32
+		{5F2ECE13-16D5-415B-8FE5-C6E5B2E1F239}.Release|Win32.ActiveCfg = Release|Win32
+		{AA69EC14-23E9-4590-B007-9AA190AA9A45}.Debug|Win32.ActiveCfg = Release|Win32
+		{AA69EC14-23E9-4590-B007-9AA190AA9A45}.Release|Win32.ActiveCfg = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

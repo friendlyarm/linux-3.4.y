@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="v4l2">
+      <UniqueIdentifier>{52a94052-acf4-4608-ad24-ba3bf120d21b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ion">
+      <UniqueIdentifier>{30401e41-21f1-4504-ae03-1a25adc86f46}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\library\src\libnxv4l2\nxp-v4l2-dev.h">
+      <Filter>v4l2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\library\src\libnxv4l2\vip.h">
+      <Filter>v4l2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\library\src\libnxv4l2\display.h">
+      <Filter>v4l2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\library\src\libnxv4l2\nx_alloc_mem.h">
+      <Filter>v4l2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\library\src\libnxv4l2\nxp-v4l2.h">
+      <Filter>v4l2</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\library\src\libion\ion.h">
+      <Filter>ion</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\library\src\libion\nx_alloc_mem.h">
+      <Filter>ion</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\library\src\libnxv4l2\nxp-v4l2-media.cpp">
+      <Filter>v4l2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\library\src\libnxv4l2\nxp-v4l2-private.cpp">
+      <Filter>v4l2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\library\src\libnxv4l2\vip.c">
+      <Filter>v4l2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\library\src\libnxv4l2\display.c">
+      <Filter>v4l2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\library\src\libnxv4l2\nxp-v4l2-dev.cpp">
+      <Filter>v4l2</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\library\src\libion\nx_alloc_mem_ion.c">
+      <Filter>ion</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\library\src\libion\ion.c">
+      <Filter>ion</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -19,13 +19,15 @@ source "drivers/char/agp/Kconfig"
 
 source "drivers/gpu/vga/Kconfig"
 
+source "drivers/gpu/arm/Kconfig"
+
 source "drivers/gpu/drm/Kconfig"
 
 source "drivers/gpu/stub/Kconfig"
 
 source "drivers/gpu/ion/Kconfig"
 
-source "drivers/gpu/arm/Kconfig"
+source "drivers/gpu/ump/Kconfig"
 
 config VGASTATE
        tristate
