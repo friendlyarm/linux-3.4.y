@@ -837,16 +837,6 @@ extern uint iw_msg_level;
 extern uint wl_dbg_level;
 #endif
 
-#ifdef CUSTOMER_HW
-struct wifi_platform_data {
-	int (*set_power)(bool val);
-	int (*set_carddetect)(bool val);
-	void *(*mem_prealloc)(int section, unsigned long size);
-	int (*get_mac_addr)(unsigned char *buf);
-	void *(*get_country_code)(char *ccode);
-};
-#endif
-
 extern uint dhd_slpauto;
 
 /* Use interrupts */

@@ -2,7 +2,7 @@
 #include <osl.h>
 #include <dngl_stats.h>
 #include <dhd.h>
-
+#include <linux/wlan_plat.h>
 #include "ap621x.h"
 
 struct wifi_platform_data dhd_wlan_control = {0};
