@@ -120,7 +120,7 @@ static void _rtl92d_write_fw(struct ieee80211_hw *hw,
 {
 	struct rtl_priv *rtlpriv = rtl_priv(hw);
 	struct rtl_hal *rtlhal = rtl_hal(rtl_priv(hw));
-	u8 *bufferPtr = (u8 *) buffer;
+	u8 *bufferPtr = buffer;
 	u32 pagenums, remainSize;
 	u32 page, offset;
 
@@ -256,8 +256,8 @@ int rtl92d_download_fw(struct ieee80211_hw *hw)
 	if (rtlpriv->max_fw_size == 0 || !rtlhal->pfirmware)
 		return 1;
 	fwsize = rtlhal->fwsize;
-	pfwheader = (u8 *) rtlhal->pfirmware;
-	pfwdata = (u8 *) rtlhal->pfirmware;
+	pfwheader = rtlhal->pfirmware;
+	pfwdata = rtlhal->pfirmware;
 	rtlhal->fw_version = (u16) GET_FIRMWARE_HDR_VERSION(pfwheader);
 	rtlhal->fw_subversion = (u16) GET_FIRMWARE_HDR_SUB_VER(pfwheader);
 	RT_TRACE(rtlpriv, COMP_INIT, DBG_LOUD,
@@ -365,7 +365,7 @@ static void _rtl92d_fill_h2c_command(struct ieee80211_hw *hw,
 	u8 u1b_tmp;
 	bool isfw_read = false;
 	u8 buf_index = 0;
-	bool bwrite_sucess = false;
+	bool bwrite_success = false;
 	u8 wait_h2c_limmit = 100;
 	u8 wait_writeh2c_limmit = 100;
 	u8 boxcontent[4], boxextcontent[2];
@@ -408,7 +408,7 @@ static void _rtl92d_fill_h2c_command(struct ieee80211_hw *hw,
 			break;
 		}
 	}
-	while (!bwrite_sucess) {
+	while (!bwrite_success) {
 		wait_writeh2c_limmit--;
 		if (wait_writeh2c_limmit == 0) {
 			RT_TRACE(rtlpriv, COMP_ERR, DBG_EMERG,
@@ -515,7 +515,7 @@ static void _rtl92d_fill_h2c_command(struct ieee80211_hw *hw,
 				 "switch case not processed\n");
 			break;
 		}
-		bwrite_sucess = true;
+		bwrite_success = true;
 		rtlhal->last_hmeboxnum = boxnum + 1;
 		if (rtlhal->last_hmeboxnum == 4)
 			rtlhal->last_hmeboxnum = 0;
@@ -540,23 +540,6 @@ void rtl92d_fill_h2c_cmd(struct ieee80211_hw *hw,
 	return;
 }
 
-void rtl92d_set_fw_pwrmode_cmd(struct ieee80211_hw *hw, u8 mode)
-{
-	struct rtl_priv *rtlpriv = rtl_priv(hw);
-	u8 u1_h2c_set_pwrmode[3] = { 0 };
-	struct rtl_ps_ctl *ppsc = rtl_psc(rtl_priv(hw));
-
-	RT_TRACE(rtlpriv, COMP_POWER, DBG_LOUD, "FW LPS mode = %d\n", mode);
-	SET_H2CCMD_PWRMODE_PARM_MODE(u1_h2c_set_pwrmode, mode);
-	SET_H2CCMD_PWRMODE_PARM_SMART_PS(u1_h2c_set_pwrmode, 1);
-	SET_H2CCMD_PWRMODE_PARM_BCN_PASS_TIME(u1_h2c_set_pwrmode,
-					      ppsc->reg_max_lps_awakeintvl);
-	RT_PRINT_DATA(rtlpriv, COMP_CMD, DBG_DMESG,
-		      "rtl92d_set_fw_rsvdpagepkt(): u1_h2c_set_pwrmode",
-		      u1_h2c_set_pwrmode, 3);
-	rtl92d_fill_h2c_cmd(hw, H2C_SETPWRMODE, 3, u1_h2c_set_pwrmode);
-}
-
 static bool _rtl92d_cmd_send_packet(struct ieee80211_hw *hw,
 				    struct sk_buff *skb)
 {
@@ -570,8 +553,7 @@ static bool _rtl92d_cmd_send_packet(struct ieee80211_hw *hw,
 
 	ring = &rtlpci->tx_ring[BEACON_QUEUE];
 	pskb = __skb_dequeue(&ring->queue);
-	if (pskb)
-		kfree_skb(pskb);
+	kfree_skb(pskb);
 	spin_lock_irqsave(&rtlpriv->locks.irq_th_lock, flags);
 	pdesc = &ring->desc[idx];
 	/* discard output from call below */

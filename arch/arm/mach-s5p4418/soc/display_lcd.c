@@ -28,7 +28,7 @@
 #include <mach/soc.h>
 #include "display_4418.h"
 
-#if (0)
+#if (1)
 #define DBGOUT(msg...)		{ printk(KERN_INFO msg); }
 #else
 #define DBGOUT(msg...)		do {} while (0)

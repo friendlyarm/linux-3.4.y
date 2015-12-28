@@ -302,108 +302,26 @@ struct platform_device nxp_gmac_dev = {
 };
 #endif /* CONFIG_NXPMAC_ETH */
 
-/*------------------------------------------------------------------------------
- * DISPLAY (LVDS) / FB
- */
+/*------------------------------------------------------------------------------ 
+* DISPLAY (LVDS) / FB */
 #if defined (CONFIG_FB_NXP)
-#if defined (CONFIG_FB0_NXP)
-static struct nxp_fb_plat_data fb0_plat_data = {
-	.module			= CONFIG_FB0_NXP_DISPOUT,
-	.layer			= CFG_DISP_PRI_SCREEN_LAYER,
-	#ifdef CONFIG_FB_NXP_X8R8G8B8
-	.format			= MLC_RGBFMT_X8R8G8B8,
-	#else
-	.format			= CFG_DISP_PRI_SCREEN_RGB_FORMAT,
-	#endif
-	.bgcolor		= CFG_DISP_PRI_BACK_GROUND_COLOR,
-	.bitperpixel	= CFG_DISP_PRI_SCREEN_PIXEL_BYTE * 8,
-	.x_resol		= CFG_DISP_PRI_RESOL_WIDTH,
-	.y_resol		= CFG_DISP_PRI_RESOL_HEIGHT,
-	#ifdef CONFIG_ANDROID
-	.buffers		= 3,
-	.skip_pan_vsync	= 1,
-	#else
-	.buffers		= 2,
-	#endif
-	.lcd_with_mm	= CFG_DISP_PRI_LCD_WIDTH_MM,	/* 152.4 */
-	.lcd_height_mm	= CFG_DISP_PRI_LCD_HEIGHT_MM,	/* 91.44 */
-};
-
-static struct platform_device fb0_device = {
-	.name	= DEV_NAME_FB,
-	.id		= 0,	/* FB device node num */
-	.dev	= {
-		.coherent_dma_mask 	= 0xffffffffUL,	/* for DMA allocate */
-		.platform_data		= &fb0_plat_data
-	},
-};
-#endif
-
-static struct platform_device *fb_devices[] = {
 	#if defined (CONFIG_FB0_NXP)
-	&fb0_device,
+		static struct nxp_fb_plat_data fb0_plat_data = {};
+		static struct platform_device fb0_device = {	
+			.name	= DEV_NAME_FB,	
+			.id		= 0,	/* FB device node num */	
+			.dev    = {		.coherent_dma_mask 	= 0xffffffffUL,	/* for DMA allocate */		
+					.platform_data		= &fb0_plat_data	
+			},
+		};
 	#endif
-};
 
-static void nxp_platform_fb_data(struct nxp_lcd *lcd)
-{
-#if defined (CONFIG_FB0_NXP)
-	struct nxp_fb_plat_data *pdata = &fb0_plat_data;
-
-	if (lcd) {
-		pdata->x_resol = lcd->width;
-		pdata->y_resol = lcd->height;
-
-		pdata->lcd_with_mm = lcd->p_width;
-		pdata->lcd_height_mm = lcd->p_height;
-	}
-#endif
-}
+	static struct platform_device *fb_devices[] = {	
+		#if defined (CONFIG_FB0_NXP)	
+			&fb0_device,	
+		#endif
+	};
 #endif /* CONFIG_FB_NXP */
-
-#if defined (CONFIG_NXP_DISPLAY_LCD)
-static void nxp_platform_disp_init(struct nxp_lcd *lcd)
-{
-	struct disp_vsync_info vsync;
-	struct nxp_lcd_timing *timing;
-	u32 clk = 800000000;
-	u32 div;
-
-	if (lcd) {
-		timing = &lcd->timing;
-
-		vsync.h_active_len	= lcd->width;
-		vsync.h_sync_width	= timing->h_sw;
-		vsync.h_back_porch	= timing->h_bp;
-		vsync.h_front_porch	= timing->h_fp;
-		vsync.h_sync_invert	= !lcd->polarity.inv_hsync;
-
-		vsync.v_active_len	= lcd->height;
-		vsync.v_sync_width	= timing->v_sw;
-		vsync.v_back_porch	= timing->v_bp;
-		vsync.v_front_porch	= timing->v_fp;
-		vsync.v_sync_invert	= !lcd->polarity.inv_vsync;
-
-		/* calculates pixel clock */
-		div  = timing->h_sw + timing->h_bp + timing->h_fp + lcd->width;
-		div *= timing->v_sw + timing->v_bp + timing->v_fp + lcd->height;
-		div *= lcd->freq ? : 60;
-		do_div(clk, div);
-
-		vsync.pixel_clock_hz= div;
-		vsync.clk_src_lv0	= CFG_DISP_PRI_CLKGEN0_SOURCE;
-		vsync.clk_div_lv0	= clk;
-		vsync.clk_src_lv1	= CFG_DISP_PRI_CLKGEN1_SOURCE;
-		vsync.clk_div_lv1	= CFG_DISP_PRI_CLKGEN1_DIV;
-		vsync.clk_out_inv	= lcd->polarity.rise_vclk;
-
-		if (lcd->gpio_init)
-			lcd->gpio_init();
-
-		nxp_platform_disp_device_data(DISP_DEVICE_LCD, &vsync, NULL, NULL);
-	}
-}
-#endif
 
 /*------------------------------------------------------------------------------
  * backlight : generic pwm device
@@ -1479,7 +1397,7 @@ static void __init board_hwrev_init(void)
  */
 void __init nxp_board_devices_register(void)
 {
-	struct nxp_lcd *lcd = nanopi2_get_lcd();
+//	struct nxp_lcd *lcd = nanopi2_get_lcd();
 
 	printk("[Register board platform devices]\n");
 
@@ -1496,15 +1414,24 @@ void __init nxp_board_devices_register(void)
 	platform_device_register(&dfs_plat_device);
 #endif
 
-#if defined (CONFIG_NXP_DISPLAY_LCD)
-	nxp_platform_disp_init(lcd);
-#endif
-
 #if defined (CONFIG_FB_NXP)
-	printk("plat: add framebuffer\n");
-	nxp_platform_fb_data(lcd);
+	#if defined (CONFIG_FB0_NXP)	
+		fb0_plat_data.module = CONFIG_FB0_NXP_DISPOUT,	
+		fb0_plat_data.layer = CFG_DISP_PRI_SCREEN_LAYER,	
+		fb0_plat_data.format = CFG_DISP_PRI_SCREEN_RGB_FORMAT,	
+		fb0_plat_data.bgcolor = CFG_DISP_PRI_BACK_GROUND_COLOR,	
+		fb0_plat_data.bitperpixel = CFG_DISP_PRI_SCREEN_PIXEL_BYTE * 8,	
+		fb0_plat_data.x_resol = CFG_DISP_PRI_RESOL_WIDTH,	
+		fb0_plat_data.y_resol = CFG_DISP_PRI_RESOL_HEIGHT,	
+		fb0_plat_data.buffers = 3,	
+		fb0_plat_data.skip_pan_vsync = 0,	
+		fb0_plat_data.lcd_with_mm = CFG_DISP_PRI_LCD_WIDTH_MM,	
+		fb0_plat_data.lcd_height_mm	= CFG_DISP_PRI_LCD_HEIGHT_MM,
+	#endif	
+	printk("plat: add framebuffer\n");	
 	platform_add_devices(fb_devices, ARRAY_SIZE(fb_devices));
 #endif
+
 
 #if defined(CONFIG_MMC_DW)
 	#ifdef CONFIG_MMC_NXP_CH0
@@ -1577,8 +1504,8 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_TOUCHSCREEN_FT5X0X)
 	printk("plat: add touch(ft5x0x) device\n");
-	ft5x0x_pdata.screen_max_x = lcd->width;
-	ft5x0x_pdata.screen_max_y = lcd->height;
+	ft5x0x_pdata.screen_max_x = CFG_DISP_PRI_RESOL_WIDTH;
+	ft5x0x_pdata.screen_max_y = CFG_DISP_PRI_RESOL_HEIGHT;
 	i2c_register_board_info(FT5X0X_I2C_BUS, &ft5x0x_i2c_bdi, 1);
 #endif
 

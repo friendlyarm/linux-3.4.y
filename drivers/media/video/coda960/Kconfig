@@ -1,0 +1,5 @@
+config NXP_VPU
+    bool "Enable coda960 IP"
+    default n
+    ---help---
+      Say y here to enable CODA960 ip

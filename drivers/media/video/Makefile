@@ -214,6 +214,8 @@ obj-$(CONFIG_VIDEO_EXYNOS)		+= exynos/
 
 obj-$(CONFIG_V4L2_NXP)			+= nexell/
 
+obj-$(CONFIG_NXP_VPU)			+= coda960/
+
 obj-$(CONFIG_BLACKFIN)                  += blackfin/
 
 obj-$(CONFIG_ARCH_DAVINCI)		+= davinci/

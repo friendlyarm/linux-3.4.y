@@ -97,6 +97,8 @@ config VIDEOBUF2_ION_NXP
 
 source "drivers/media/video/nexell/Kconfig"
 
+source "drivers/media/video/coda960/Kconfig"
+
 #
 # Multimedia Video device configuration
 #

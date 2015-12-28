@@ -9,5 +9,8 @@
 #
 #
 
-
 obj-$(CONFIG_MALI_T6XX) += t6xx/
+obj-$(CONFIG_MALI400) += m400/
+obj-$(CONFIG_VR400) += vr/
+
+

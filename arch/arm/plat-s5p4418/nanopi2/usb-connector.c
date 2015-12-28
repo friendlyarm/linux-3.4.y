@@ -413,7 +413,7 @@ static int __init s5p4418_connector_init(void)
 	}
     else
 	{
-		nxp_soc_gpio_set_io_pullup(CFG_GPIO_OTG_USBID_DET, true);
+//		nxp_soc_gpio_set_io_pullup(CFG_GPIO_OTG_USBID_DET, true);
 //		nxp_soc_gpio_set_int_mode(CFG_GPIO_OTG_USBID_DET, 4);
 		nxp_soc_gpio_set_int_enable(CFG_GPIO_OTG_USBID_DET, 1);
 		nxp_soc_gpio_clr_int_pend(CFG_GPIO_OTG_USBID_DET);

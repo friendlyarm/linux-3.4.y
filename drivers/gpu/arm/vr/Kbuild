@@ -1,0 +1,213 @@
+#
+# This confidential and proprietary software may be used only as
+# authorised by a licensing agreement from ARM Limited
+# (C) COPYRIGHT 2007-2011 ARM Limited
+# ALL RIGHTS RESERVED
+# The entire notice above must be reproduced on all authorised
+# copies and copies may only be made to the extent permitted
+# by a licensing agreement from ARM Limited.
+#
+
+# This file is called by the Linux build system.
+
+# set up defaults if not defined by the user
+TIMESTAMP ?= default
+OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 32
+USING_GPU_UTILIZATION ?= 1
+PROFILING_SKIP_PP_JOBS ?= 0
+PROFILING_SKIP_PP_AND_GP_JOBS ?= 0
+VR_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP ?= 0
+VR_PP_SCHEDULER_KEEP_SUB_JOB_STARTS_ALIGNED ?= 0
+VR_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP_BETWEEN_APPS ?= 0
+VR_UPPER_HALF_SCHEDULING ?= 1
+VR_ENABLE_CPU_CYCLES ?= 1
+
+# For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
+# The ARM proprietary product will only include the license/proprietary directory
+# The GPL product will only include the license/gpl directory
+ifeq ($(wildcard $(src)/linux/license/gpl/*),)
+    ccflags-y += -I$(src)/linux/license/proprietary
+    ifeq ($(CONFIG_VR400_PROFILING),y)
+        $(error Profiling is incompatible with non-GPL license)
+    endif
+    ifeq ($(CONFIG_PM_RUNTIME),y)
+        $(error Runtime PM is incompatible with non-GPL license)
+    endif
+    ifeq ($(CONFIG_DMA_SHARED_BUFFER),y)
+        $(error DMA-BUF is incompatible with non-GPL license)
+    endif
+    $(error Linux Device integration is incompatible with non-GPL license)
+else
+    ccflags-y += -I$(src)/linux/license/gpl
+endif
+
+vr-y += \
+	linux/vr_osk_atomics.o \
+	linux/vr_osk_irq.o \
+	linux/vr_osk_wq.o \
+	linux/vr_osk_locks.o \
+	linux/vr_osk_wait_queue.o \
+	linux/vr_osk_low_level_mem.o \
+	linux/vr_osk_math.o \
+	linux/vr_osk_memory.o \
+	linux/vr_osk_misc.o \
+	linux/vr_osk_vr.o \
+	linux/vr_osk_notification.o \
+	linux/vr_osk_time.o \
+	linux/vr_osk_timers.o
+
+vr-y += linux/vr_memory.o linux/vr_memory_os_alloc.o
+vr-y += linux/vr_memory_external.o
+vr-y += linux/vr_memory_block_alloc.o
+
+vr-y += \
+	linux/vr_ukk_mem.o \
+	linux/vr_ukk_gp.o \
+	linux/vr_ukk_pp.o \
+	linux/vr_ukk_core.o \
+	linux/vr_ukk_soft_job.o \
+	linux/vr_ukk_timeline.o
+
+# Source files which always are included in a build
+vr-y += \
+	common/vr_kernel_core.o \
+	linux/vr_kernel_linux.o \
+	common/vr_kernel_descriptor_mapping.o \
+	common/vr_session.o \
+	linux/vr_device_pause_resume.o \
+	common/vr_kernel_vsync.o \
+	linux/vr_ukk_vsync.o \
+	linux/vr_kernel_sysfs.o \
+	common/vr_mmu.o \
+	common/vr_mmu_page_directory.o \
+	common/vr_mem_validation.o \
+	common/vr_hw_core.o \
+	common/vr_gp.o \
+	common/vr_pp.o \
+	common/vr_pp_job.o \
+	common/vr_gp_job.o \
+	common/vr_soft_job.o \
+	common/vr_scheduler.o \
+	common/vr_gp_scheduler.o \
+	common/vr_pp_scheduler.o \
+	common/vr_group.o \
+	common/vr_dlbu.o \
+	common/vr_broadcast.o \
+	common/vr_pm.o \
+	common/vr_pmu.o \
+	common/vr_user_settings_db.o \
+	common/vr_kernel_utilization.o \
+	common/vr_l2_cache.o \
+	common/vr_dma.o \
+	common/vr_timeline.o \
+	common/vr_timeline_fence_wait.o \
+	common/vr_timeline_sync_fence.o \
+	common/vr_spinlock_reentrant.o \
+	common/vr_pm_domain.o \
+	linux/vr_osk_pm.o \
+	linux/vr_pmu_power_up_down.o \
+	__vrdrv_build_info.o
+
+ifneq ($(VR_PLATFORM_FILES),)
+	vr-y += $(VR_PLATFORM_FILES:.c=.o)
+endif
+
+vr-$(CONFIG_VR400_PROFILING) += linux/vr_ukk_profiling.o
+vr-$(CONFIG_VR400_PROFILING) += linux/vr_osk_profiling.o
+
+vr-$(CONFIG_VR400_INTERNAL_PROFILING) += linux/vr_profiling_internal.o timestamp-$(TIMESTAMP)/vr_timestamp.o
+ccflags-$(CONFIG_VR400_INTERNAL_PROFILING) += -I$(src)/timestamp-$(TIMESTAMP)
+
+vr-$(CONFIG_DMA_SHARED_BUFFER) += linux/vr_memory_dma_buf.o
+vr-$(CONFIG_SYNC) += linux/vr_sync.o
+
+
+vr-$(CONFIG_VR400_UMP) += linux/vr_memory_ump.o
+
+vr-$(CONFIG_VR400_POWER_PERFORMANCE_POLICY) += common/vr_power_performance_policy.o
+
+# Tell the Linux build system from which .o file to create the kernel module
+obj-$(CONFIG_VR400) := vr.o
+
+ccflags-y += $(EXTRA_DEFINES)
+
+# Set up our defines, which will be passed to gcc
+ccflags-y += -DPROFILING_SKIP_PP_JOBS=$(PROFILING_SKIP_PP_JOBS)
+ccflags-y += -DPROFILING_SKIP_PP_AND_GP_JOBS=$(PROFILING_SKIP_PP_AND_GP_JOBS)
+
+ccflags-y += -DVR_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP=$(VR_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP)
+ccflags-y += -DVR_PP_SCHEDULER_KEEP_SUB_JOB_STARTS_ALIGNED=$(VR_PP_SCHEDULER_KEEP_SUB_JOB_STARTS_ALIGNED)
+ccflags-y += -DVR_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP_BETWEEN_APPS=$(VR_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP_BETWEEN_APPS)
+ccflags-y += -DVR_STATE_TRACKING=1
+ccflags-y += -DVR_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=$(OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB)
+ccflags-y += -DUSING_GPU_UTILIZATION=$(USING_GPU_UTILIZATION)
+ccflags-y += -DVR_ENABLE_CPU_CYCLES=$(VR_ENABLE_CPU_CYCLES)
+
+ifeq ($(VR_UPPER_HALF_SCHEDULING),1)
+	ccflags-y += -DVR_UPPER_HALF_SCHEDULING
+endif
+
+ccflags-$(CONFIG_VR400_UMP) += -I$(src)/../../ump/include
+ccflags-$(CONFIG_VR400_DEBUG) += -DDEBUG
+
+# Use our defines when compiling
+ccflags-y += -I$(src) -I$(src)/include -I$(src)/common -I$(src)/linux -I$(src)/platform
+
+# Get subversion revision number, fall back to only ${VR_RELEASE_NAME} if no svn info is available
+VR_RELEASE_NAME=$(shell cat $(src)/.version 2> /dev/null)
+
+SVN_INFO = (cd $(src); svn info 2>/dev/null)
+
+ifneq ($(shell $(SVN_INFO) 2>/dev/null),)
+# SVN detected
+SVN_REV := $(shell $(SVN_INFO) | grep '^Revision: '| sed -e 's/^Revision: //' 2>/dev/null)
+DRIVER_REV := $(VR_RELEASE_NAME)-r$(SVN_REV)
+CHANGE_DATE := $(shell $(SVN_INFO) | grep '^Last Changed Date: ' | cut -d: -f2- | cut -b2-)
+CHANGED_REVISION := $(shell $(SVN_INFO) | grep '^Last Changed Rev: ' | cut -d: -f2- | cut -b2-)
+REPO_URL := $(shell $(SVN_INFO) | grep '^URL: ' | cut -d: -f2- | cut -b2-)
+
+else # SVN
+GIT_REV := $(shell cd $(src); git describe --always 2>/dev/null)
+ifneq ($(GIT_REV),)
+# Git detected
+DRIVER_REV := $(VR_RELEASE_NAME)-$(GIT_REV)
+CHANGE_DATE := $(shell cd $(src); git log -1 --format="%ci")
+CHANGED_REVISION := $(GIT_REV)
+REPO_URL := $(shell cd $(src); git describe --all --always 2>/dev/null)
+
+else # Git
+# No Git or SVN detected
+DRIVER_REV := $(VR_RELEASE_NAME)
+CHANGE_DATE := $(VR_RELEASE_NAME)
+CHANGED_REVISION := $(VR_RELEASE_NAME)
+endif
+endif
+
+ccflags-y += -DSVN_REV_STRING=\"$(DRIVER_REV)\"
+
+VERSION_STRINGS :=
+VERSION_STRINGS += API_VERSION=$(shell cd $(src); grep "\#define _VR_API_VERSION" $(FILES_PREFIX)include/linux/vr/vr_utgard_uk_types.h | cut -d' ' -f 3 )
+VERSION_STRINGS += REPO_URL=$(REPO_URL)
+VERSION_STRINGS += REVISION=$(DRIVER_REV)
+VERSION_STRINGS += CHANGED_REVISION=$(CHANGED_REVISION)
+VERSION_STRINGS += CHANGE_DATE=$(CHANGE_DATE)
+VERSION_STRINGS += BUILD_DATE=$(shell date)
+ifdef CONFIG_VR400_DEBUG
+VERSION_STRINGS += BUILD=debug
+else
+VERSION_STRINGS += BUILD=release
+endif
+VERSION_STRINGS += TARGET_PLATFORM=$(TARGET_PLATFORM)
+VERSION_STRINGS += VR_PLATFORM=$(VR_PLATFORM)
+VERSION_STRINGS += KDIR=$(KDIR)
+VERSION_STRINGS += OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=$(OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB)
+VERSION_STRINGS += USING_UMP=$(CONFIG_VR400_UMP)
+VERSION_STRINGS += USING_PROFILING=$(CONFIG_VR400_PROFILING)
+VERSION_STRINGS += USING_INTERNAL_PROFILING=$(CONFIG_VR400_INTERNAL_PROFILING)
+VERSION_STRINGS += USING_GPU_UTILIZATION=$(USING_GPU_UTILIZATION)
+VERSION_STRINGS += USING_POWER_PERFORMANCE_POLICY=$(CONFIG_POWER_PERFORMANCE_POLICY)
+VERSION_STRINGS += VR_UPPER_HALF_SCHEDULING=$(VR_UPPER_HALF_SCHEDULING)
+
+# Create file with Vr driver configuration
+$(src)/__vrdrv_build_info.c:
+	@echo 'const char *__vrdrv_build_info(void) { return "vrdrv: $(VERSION_STRINGS)";}' > $(src)/__vrdrv_build_info.c

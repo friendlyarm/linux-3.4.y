@@ -175,3 +175,7 @@ ifeq ($(CONFIG_MALI_T6XX),y)
     EXTRA_CFLAGS += -Idrivers/gpu/arm/t6xx
 endif
 
+ifeq ($(CONFIG_MALI400),y)
+    EXTRA_CFLAGS += -Idrivers/gpu/arm/m400
+endif
+

@@ -1780,8 +1780,24 @@ config THUMB2_AVOID_R_ARM_THM_JUMP11
 config ARM_ASM_UNIFIED
 	bool
 
+
 config AEABI
-	bool "Use the ARM EABI to compile the kernel"
+	bool "Use the ARM AEABI to compile the kernel"
+	help
+	  This option allows for the kernel to be compiled using the latest
+	  ARM Android ABI (aka AEABI).  This is only useful if you are using a user
+	  space environment that is also compiled with AEABI.
+
+	  Since there are major incompatibilities between the legacy ABI and
+	  EABI, especially with regard to structure member alignment, this
+	  option also changes the kernel syscall calling convention to
+	  disambiguate both ABIs and allow for backward compatibility support
+	  (selected with CONFIG_OABI_COMPAT).
+
+	  To use this you need GCC version 4.0.0 or later.
+
+config EABI
+	bool "Use the ARM EABI"
 	help
 	  This option allows for the kernel to be compiled using the latest
 	  ARM ABI (aka EABI).  This is only useful if you are using a user

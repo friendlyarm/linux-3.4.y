@@ -35,49 +35,13 @@
 #define	MAX_MSS_DENSITY_1T				0x0A
 
 #define RF6052_MAX_TX_PWR				0x3F
-#define RF6052_MAX_REG					0x3F
 #define RF6052_MAX_PATH					2
-
-#define HAL_RETRY_LIMIT_INFRA				48
-#define HAL_RETRY_LIMIT_AP_ADHOC			7
 
 #define	PHY_RSSI_SLID_WIN_MAX				100
 #define	PHY_LINKQUALITY_SLID_WIN_MAX			20
 #define	PHY_BEACON_RSSI_SLID_WIN_MAX			10
 
-#define RESET_DELAY_8185				20
-
-#define RT_IBSS_INT_MASKS	(IMR_BCNINT | IMR_TBDOK | IMR_TBDER)
 #define RT_AC_INT_MASKS		(IMR_VIDOK | IMR_VODOK | IMR_BEDOK|IMR_BKDOK)
-
-#define NUM_OF_FIRMWARE_QUEUE				10
-#define NUM_OF_PAGES_IN_FW				0x100
-#define NUM_OF_PAGE_IN_FW_QUEUE_BK			0x07
-#define NUM_OF_PAGE_IN_FW_QUEUE_BE			0x07
-#define NUM_OF_PAGE_IN_FW_QUEUE_VI			0x07
-#define NUM_OF_PAGE_IN_FW_QUEUE_VO			0x07
-#define NUM_OF_PAGE_IN_FW_QUEUE_HCCA			0x0
-#define NUM_OF_PAGE_IN_FW_QUEUE_CMD			0x0
-#define NUM_OF_PAGE_IN_FW_QUEUE_MGNT			0x02
-#define NUM_OF_PAGE_IN_FW_QUEUE_HIGH			0x02
-#define NUM_OF_PAGE_IN_FW_QUEUE_BCN			0x2
-#define NUM_OF_PAGE_IN_FW_QUEUE_PUB			0xA1
-
-#define NUM_OF_PAGE_IN_FW_QUEUE_BK_DTM			0x026
-#define NUM_OF_PAGE_IN_FW_QUEUE_BE_DTM			0x048
-#define NUM_OF_PAGE_IN_FW_QUEUE_VI_DTM			0x048
-#define NUM_OF_PAGE_IN_FW_QUEUE_VO_DTM			0x026
-#define NUM_OF_PAGE_IN_FW_QUEUE_PUB_DTM			0x00
-
-#define MAX_LINES_HWCONFIG_TXT				1000
-#define MAX_BYTES_LINE_HWCONFIG_TXT			256
-
-#define SW_THREE_WIRE					0
-#define HW_THREE_WIRE					2
-
-#define BT_DEMO_BOARD					0
-#define BT_QA_BOARD					1
-#define BT_FPGA						2
 
 #define RX_SMOOTH_FACTOR				20
 
@@ -85,11 +49,8 @@
 #define HAL_PRIME_CHNL_OFFSET_LOWER			1
 #define HAL_PRIME_CHNL_OFFSET_UPPER			2
 
-#define MAX_H2C_QUEUE_NUM				10
-
 #define RX_MPDU_QUEUE					0
 #define RX_CMD_QUEUE					1
-#define RX_MAX_QUEUE					2
 
 #define	C2H_RX_CMD_HDR_LEN				8
 #define	GET_C2H_CMD_CMD_LEN(__prxhdr)			\
@@ -151,9 +112,6 @@ enum version_8192d {
 
 /* for 92D */
 #define CHIP_92D_SINGLEPHY		BIT(9)
-#define C_CUT_VERSION			BIT(13)
-#define D_CUT_VERSION			((BIT(12)|BIT(13)))
-#define E_CUT_VERSION			BIT(14)
 
 /* Chip specific */
 #define CHIP_BONDING_IDENTIFIER(_value)	(((_value)>>22)&0x3)
@@ -173,7 +131,10 @@ enum version_8192d {
 #define RF_TYPE_1T2R			BIT(4)
 #define RF_TYPE_2T2R			BIT(5)
 #define CHIP_VENDOR_UMC			BIT(7)
-#define B_CUT_VERSION			BIT(12)
+#define CHIP_92D_B_CUT			BIT(12)
+#define CHIP_92D_C_CUT			BIT(13)
+#define CHIP_92D_D_CUT			(BIT(13)|BIT(12))
+#define CHIP_92D_E_CUT			BIT(14)
 
 /* MASK */
 #define IC_TYPE_MASK			(BIT(0)|BIT(1)|BIT(2))
@@ -205,15 +166,13 @@ enum version_8192d {
 					 CHIP_92D) ? true : false)
 #define IS_92D_C_CUT(version)		((IS_92D(version)) ?		\
 				 ((GET_CVID_CUT_VERSION(version) ==	\
-				 0x2000) ? true : false) : false)
+				 CHIP_92D_C_CUT) ? true : false) : false)
 #define IS_92D_D_CUT(version)			((IS_92D(version)) ?	\
 				 ((GET_CVID_CUT_VERSION(version) ==	\
-				 0x3000) ? true : false) : false)
+				 CHIP_92D_D_CUT) ? true : false) : false)
 #define IS_92D_E_CUT(version)		((IS_92D(version)) ?		\
 				 ((GET_CVID_CUT_VERSION(version) ==	\
-				 0x4000) ? true : false) : false)
-#define CHIP_92D_C_CUT			BIT(10)
-#define CHIP_92D_D_CUT			BIT(11)
+				 CHIP_92D_E_CUT) ? true : false) : false)
 
 enum rf_optype {
 	RF_OP_BY_SW_3WIRE = 0,
