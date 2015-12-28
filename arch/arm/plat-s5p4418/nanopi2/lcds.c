@@ -311,7 +311,7 @@ static struct nxp_lcd hdmi_def = {
 	.p_width = 480,
 	.p_height = 320,
 	.bpp = 24,
-	.freq = 60,
+	.freq = 50,
 
 	.timing = {
 		.h_fp = 12,
@@ -427,7 +427,7 @@ __ret:
 	printk("Display: %s selected\n", nanopi2_lcd_config[lcd_idx].name);
 	return 0;
 }
-early_param("lcd", nanopi2_setup_lcd);
+early_param("HDMI720P60", nanopi2_setup_lcd);
 
 
 struct nxp_lcd *nanopi2_get_lcd(void)
@@ -465,11 +465,11 @@ static int __init nanopi2_init_ctp(char *str)
 		return 1;
 	}
 
-	if (val < CTP_MAX && nanopi2_lcd_config[lcd_idx].ctp) {
-		ctp_type = val;
-	} else if (val == CTP_NONE) {
+//	if (val < CTP_MAX && nanopi2_lcd_config[lcd_idx].ctp) {
+//		ctp_type = val;
+//	} else if (val == CTP_NONE) {
 		ctp_type = CTP_NONE;
-	}
+//	}
 
 	return 1;
 }

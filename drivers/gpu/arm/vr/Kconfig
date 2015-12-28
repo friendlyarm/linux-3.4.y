@@ -1,0 +1,81 @@
+config VR400
+	tristate "Vr-300/400/450 support"
+	depends on ARM
+	select DMA_SHARED_BUFFER
+	---help---
+	  This enables support for the ARM Vr-300, Vr-400, and Vr-450
+	  GPUs.
+
+	  To compile this driver as a module, choose M here: the module will be
+	  called vr.
+
+config VR450
+	bool "Enable Vr-450 support"
+	depends on VR400
+	---help---
+	  This enables support for Vr-450 specific features.
+
+config VR400_DEBUG
+	bool "Enable debug in Vr driver"
+	depends on VR400
+	---help---
+	  This enabled extra debug checks and messages in the Vr driver.
+
+config VR400_PROFILING
+	bool "Enable Vr profiling"
+	depends on VR400
+	select TRACEPOINTS
+	default y
+	---help---
+	  This enables gator profiling of Vr GPU events.
+
+config VR400_INTERNAL_PROFILING
+	bool "Enable internal Vr profiling API"
+	depends on VR400_PROFILING
+	default n
+	---help---
+	  This enables the internal legacy Vr profiling API.
+
+config VR400_UMP
+	bool "Enable UMP support"
+	depends on VR400
+	---help---
+	  This enables support for the UMP memory sharing API in the Vr driver.
+
+config VR400_POWER_PERFORMANCE_POLICY
+	bool "Enable Vr power performance policy"
+	depends on ARM
+	default n
+	---help---
+	  This enables support for dynamic performance scaling of Vr with the goal of lowering power consumption.
+
+config VR_DMA_BUF_MAP_ON_ATTACH
+	bool "Map dma-buf attachments on attach"
+	depends on VR400 && DMA_SHARED_BUFFER
+	default y
+	---help---
+	  This makes the Vr driver map dma-buf attachments after doing
+	  attach. If this is not set the dma-buf attachments will be mapped for
+	  every time the GPU need to access the buffer.
+
+	  Mapping for each access can cause lower performance.
+
+config VR_SHARED_INTERRUPTS
+	bool "Support for shared interrupts"
+	depends on VR400
+	default n
+	---help---
+	  Adds functionality required to properly support shared interrupts.  Without this support,
+	  the device driver will fail during insmod if it detects shared interrupts.  This also
+	  works when the GPU is not using shared interrupts, but might have a slight performance
+	  impact.
+
+config VR_PMU_PARALLEL_POWER_UP
+	bool "Power up Vr PMU domains in parallel"
+	depends on VR400
+	default n
+	---help---
+	  This makes the Vr driver power up all PMU power domains in parallel, instead of
+	  powering up domains one by one, with a slight delay in between. Powering on all power
+	  domains at the same time may cause peak currents higher than what some systems can handle.
+	  These systems must not enable this option.

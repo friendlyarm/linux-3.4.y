@@ -90,6 +90,8 @@
  */
 #define CFG_IO_NAND_nWP							(PAD_GPIO_C + 27)		/* GPIO */
 
+
+#if 0
 /*------------------------------------------------------------------------------
  * 	Display (DPC and MLC)
  */
@@ -104,23 +106,23 @@
 
 #define CFG_DISP_PRI_MLC_INTERLACE              CFALSE
 
-#define CFG_DISP_PRI_LCD_WIDTH_MM               218
-#define CFG_DISP_PRI_LCD_HEIGHT_MM              136
+#define CFG_DISP_PRI_LCD_WIDTH_MM               152.4
+#define CFG_DISP_PRI_LCD_HEIGHT_MM              91.44
 
 #define CFG_DISP_PRI_RESOL_WIDTH                1280	// X Resolution
-#define CFG_DISP_PRI_RESOL_HEIGHT               800	// Y Resolution
+#define CFG_DISP_PRI_RESOL_HEIGHT               720	// Y Resolution
 
-#define CFG_DISP_PRI_HSYNC_SYNC_WIDTH           30
-#define CFG_DISP_PRI_HSYNC_BACK_PORCH           16
-#define CFG_DISP_PRI_HSYNC_FRONT_PORCH          16
+#define CFG_DISP_PRI_HSYNC_SYNC_WIDTH           20
+#define CFG_DISP_PRI_HSYNC_BACK_PORCH           140
+#define CFG_DISP_PRI_HSYNC_FRONT_PORCH          160
 #define CFG_DISP_PRI_HSYNC_ACTIVE_HIGH          CTRUE
-#define CFG_DISP_PRI_VSYNC_SYNC_WIDTH           12
-#define CFG_DISP_PRI_VSYNC_BACK_PORCH           8
-#define CFG_DISP_PRI_VSYNC_FRONT_PORCH          8
+#define CFG_DISP_PRI_VSYNC_SYNC_WIDTH           3
+#define CFG_DISP_PRI_VSYNC_BACK_PORCH           20
+#define CFG_DISP_PRI_VSYNC_FRONT_PORCH          12
 #define CFG_DISP_PRI_VSYNC_ACTIVE_HIGH          CTRUE
 
 #define CFG_DISP_PRI_CLKGEN0_SOURCE             DPC_VCLK_SRC_PLL2
-#define CFG_DISP_PRI_CLKGEN0_DIV                11	// even divide
+#define CFG_DISP_PRI_CLKGEN0_DIV                5	// even divide
 #define CFG_DISP_PRI_CLKGEN0_DELAY              0
 #define CFG_DISP_PRI_CLKGEN0_INVERT             0
 #define CFG_DISP_PRI_CLKGEN1_SOURCE             DPC_VCLK_SRC_VCLK2
@@ -143,6 +145,52 @@
  * 	LVDS
  */
 #define CFG_DISP_LVDS_LCD_FORMAT                LVDS_LCDFORMAT_VESA
+#endif
+
+extern int CFG_DISP_PRI_SCREEN_LAYER;
+extern int CFG_DISP_PRI_SCREEN_RGB_FORMAT;
+extern int CFG_DISP_PRI_SCREEN_PIXEL_BYTE;
+extern int CFG_DISP_PRI_SCREEN_COLOR_KEY;
+extern int CFG_DISP_PRI_VIDEO_PRIORITY;
+extern int CFG_DISP_PRI_BACK_GROUND_COLOR;
+extern int CFG_DISP_PRI_MLC_INTERLACE;
+extern int CFG_DISP_PRI_LCD_WIDTH_MM;
+extern int CFG_DISP_PRI_LCD_HEIGHT_MM;
+extern int CFG_DISP_PRI_RESOL_WIDTH;
+extern int CFG_DISP_PRI_RESOL_HEIGHT;
+extern int CFG_DISP_PRI_HSYNC_SYNC_WIDTH;
+extern int CFG_DISP_PRI_HSYNC_BACK_PORCH;
+extern int CFG_DISP_PRI_HSYNC_FRONT_PORCH;
+extern int CFG_DISP_PRI_HSYNC_ACTIVE_HIGH;
+extern int CFG_DISP_PRI_VSYNC_SYNC_WIDTH;
+extern int CFG_DISP_PRI_VSYNC_BACK_PORCH;
+extern int CFG_DISP_PRI_VSYNC_FRONT_PORCH;
+extern int CFG_DISP_PRI_VSYNC_ACTIVE_HIGH;
+extern int CFG_DISP_PRI_CLKGEN0_SOURCE;
+extern int CFG_DISP_PRI_CLKGEN0_DIV;
+extern int CFG_DISP_PRI_CLKGEN0_DELAY;
+extern int CFG_DISP_PRI_CLKGEN0_INVERT;
+extern int CFG_DISP_PRI_CLKGEN1_SOURCE;
+extern int CFG_DISP_PRI_CLKGEN1_DIV;
+extern int CFG_DISP_PRI_CLKGEN1_DELAY;
+extern int CFG_DISP_PRI_CLKGEN1_INVERT;
+extern int CFG_DISP_PRI_CLKSEL1_SELECT;
+extern int CFG_DISP_PRI_PADCLKSEL;
+extern int CFG_DISP_PRI_PIXEL_CLOCK;
+extern int CFG_DISP_PRI_OUT_SWAPRB;
+extern int CFG_DISP_PRI_OUT_FORMAT;
+extern int CFG_DISP_PRI_OUT_YCORDER;
+extern int CFG_DISP_PRI_OUT_INTERLACE;
+extern int CFG_DISP_PRI_OUT_INVERT_FIELD;
+extern int CFG_DISP_LCD_MPY_TYPE;
+extern int CFG_DISP_LVDS_LCD_FORMAT;
+extern int CFG_DISP_HDMI_USING;
+extern int CFG_DISP_MIPI_PLLPMS;
+extern int CFG_DISP_MIPI_BANDCTL;
+extern int CFG_DISP_MIPI_PLLCTL;
+extern int CFG_DISP_MIPI_DPHYCTL;
+//extern struct mipi_reg_val * CFG_DISP_MIPI_INIT_DATA;
+
 
 /*------------------------------------------------------------------------------
  * 	PWM

@@ -3,11 +3,8 @@
 #
 # Makefile for the S5P4418
 
-obj-y					:= board.o device.o
+obj-y					:= board.o device.o nanopi-lcds.o touch.o wifi_pm.o bt_bcm.o
 obj-$(CONFIG_SUSPEND)			+= pm.o
 obj-$(CONFIG_ION_NXP)			+= dev-ion.o
 obj-$(CONFIG_USB_CONNECT_NXP_DRV)	+= usb-connector.o
-obj-y					+= lcds.o
-obj-y					+= wifi_pm.o
-obj-y					+= bt_bcm.o
 

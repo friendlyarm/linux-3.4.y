@@ -15,7 +15,7 @@ USING_DVFS ?= 1
 MALI_HEATMAPS_ENABLED ?= 1
 MALI_DMA_BUF_MAP_ON_ATTACH ?= 1
 MALI_PMU_PARALLEL_POWER_UP ?= 0
-USING_DT ?= 1
+USING_DT ?= 0
 MALI_MEM_SWAP_TRACKING ?= 0
 
 # The Makefile sets up "arch" based on the CONFIG, creates the version info
@@ -101,7 +101,7 @@ $(warning MALI_PLATFORM $(MALI_PLATFORM))
 endif
 
 # Set up build config
-export CONFIG_MALI400=m
+export CONFIG_MALI400=y
 export CONFIG_MALI450=y
 export CONFIG_MALI470=y
 

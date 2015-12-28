@@ -104,5 +104,14 @@ config NXP_DISPLAY_HDMI_USE_HDCP
     default n
     ---help---
       Say y here to enable hdcp module
+	  
+config NXP_DISPLAY_RESC
+	bool "RESOLUTION CONVERTOR"
+	default n
+
+	config NXP_DISPLAY_RESC_IN
+		int "Display In  [0=Display 0, 1=Display 1]"
+		depends on NXP_DISPLAY_RESC
+		default 0
 
 endmenu
