@@ -38,6 +38,7 @@
 
 #include <mach/platform.h>
 #include <mach/soc.h>
+#include <board-revision.h>
 #include "bt_bcm.h"
 
 
@@ -509,17 +510,22 @@ static struct platform_driver bt_bcm_driver = {
 
 static int __init bt_bcm_init(void)
 {
-	int ret;
+	int ret = 0;
 
-	platform_device_register(&bt_bcm_device);
-	ret = platform_driver_register(&bt_bcm_driver);
+	if (!board_is_smart4418()) {
+		platform_device_register(&bt_bcm_device);
+		ret = platform_driver_register(&bt_bcm_driver);
+	}
+
 	return ret;
 }
 
 static void __exit bt_bcm_exit(void)
 {
-	platform_driver_unregister(&bt_bcm_driver);
-	platform_device_unregister(&bt_bcm_device);
+	if (!board_is_smart4418()) {
+		platform_driver_unregister(&bt_bcm_driver);
+		platform_device_unregister(&bt_bcm_device);
+	}
 }
 
 module_init(bt_bcm_init);
