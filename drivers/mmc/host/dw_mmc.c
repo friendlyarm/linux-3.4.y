@@ -156,13 +156,15 @@ static int mci_id = 0;
 
 extern void mmc_stop_host(struct mmc_host *host);
 
-void sw_mci_rescan_card(unsigned insert)
+static int sw_mci_rescan_card(unsigned insert)
 {
 	struct dw_mci_slot *slot;
 
 	BUG_ON(CFG_WIFI_SDIO_ID > 3);
 
 	slot = mci_slot[CFG_WIFI_SDIO_ID];
+	if (!slot)
+		return -ENODEV;
 
 	slot->last_detect_state = insert ? 1 : 0;
 
@@ -171,13 +173,12 @@ void sw_mci_rescan_card(unsigned insert)
 	else
 		mmc_stop_host(slot->mmc);
 
-	return;
+	return 0;
 }
-EXPORT_SYMBOL_GPL(sw_mci_rescan_card);
 
-void force_presence_change(struct platform_device *dev, int state)
+int force_presence_change(struct platform_device *dev, int state)
 {
-	sw_mci_rescan_card(state);
+	return sw_mci_rescan_card(state);
 }
 EXPORT_SYMBOL_GPL(force_presence_change);
 #endif

@@ -1588,6 +1588,9 @@ void __init nxp_board_devices_register(void)
 #ifdef CONFIG_MMC_NXP_CH2
 		board_fixup_dwmci2();
 #endif
+	} else {
+		/* board without eMMC */
+		bootdev = 0;
 	}
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
@@ -1607,7 +1610,9 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_MMC_DW)
 	printk("plat: boot from mmc.%d\n", bootdev);
-	if (bootdev == 2) {
+	if (board_is_fire()) {
+		_dwmci0_add_device();
+	} else if (bootdev == 2) {
 		_dwmci2_add_device();
 		_dwmci1_add_device();
 		_dwmci0_add_device();
@@ -1735,7 +1740,7 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_NXPMAC_ETH)
-	if (board_is_nanopc() || board_is_smart4418()) {
+	if (!board_is_nanopi()) {
 		printk("plat: add device nxp-gmac\n");
 		platform_device_register(&nxp_gmac_dev);
 	}
