@@ -1437,6 +1437,24 @@ static void __init board_fixup_dwmci2(void)
 }
 #endif
 
+static inline void _dwmci0_add_device(void) {
+#ifdef CONFIG_MMC_NXP_CH0
+	nxp_mmc_add_device(0, &_dwmci0_data);
+#endif
+}
+
+static inline void _dwmci1_add_device(void) {
+#ifdef CONFIG_MMC_NXP_CH1
+	nxp_mmc_add_device(1, &_dwmci1_data);
+#endif
+}
+
+static inline void _dwmci2_add_device(void) {
+#ifdef CONFIG_MMC_NXP_CH2
+	nxp_mmc_add_device(2, &_dwmci2_data);
+#endif
+}
+
 #endif /* CONFIG_MMC_DW */
 
 /*------------------------------------------------------------------------------
@@ -1514,6 +1532,21 @@ static struct platform_device gpio_led_device = {
 #endif
 
 /*------------------------------------------------------------------------------
+ * Boot device
+ */
+
+static int bootdev = 0;
+
+static int __init board_setup_bootdev(char *str)
+{
+	if (!strcasecmp(str, "emmc") || !strcmp(str, "2"))
+		bootdev = 2;
+
+	return 0;
+}
+early_param("bootdev", board_setup_bootdev);
+
+/*------------------------------------------------------------------------------
  * HW revision
  */
 #include <asm/system_info.h>
@@ -1573,15 +1606,16 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_MMC_DW)
-	#ifdef CONFIG_MMC_NXP_CH0
-	nxp_mmc_add_device(0, &_dwmci0_data);
-	#endif
-	#ifdef CONFIG_MMC_NXP_CH1
-	nxp_mmc_add_device(1, &_dwmci1_data);
-	#endif
-	#ifdef CONFIG_MMC_NXP_CH2
-	nxp_mmc_add_device(2, &_dwmci2_data);
-	#endif
+	printk("plat: boot from mmc.%d\n", bootdev);
+	if (bootdev == 2) {
+		_dwmci2_add_device();
+		_dwmci1_add_device();
+		_dwmci0_add_device();
+	} else {
+		_dwmci0_add_device();
+		_dwmci1_add_device();
+		_dwmci2_add_device();
+	}
 #endif
 
 #if defined(CONFIG_DM9000) || defined(CONFIG_DM9000_MODULE)
