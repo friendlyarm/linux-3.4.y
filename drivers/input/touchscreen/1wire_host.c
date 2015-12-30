@@ -731,9 +731,10 @@ static int __init onewire_dev_init(void)
 
 #if defined(CONFIG_TOUCHSCREEN_GOODIX) || \
 	defined(CONFIG_TOUCHSCREEN_FT5X0X)
-	if (nanopi2_get_ctp() != CTP_NONE) {
+	ret = nanopi2_get_ctp();
+	if (ret != CTP_NONE && ret != CTP_AUTO) {
 		has_ts_data = 0;
-		timer_interval = HZ / 20;
+		timer_interval = HZ / 10;
 	}
 #endif
 

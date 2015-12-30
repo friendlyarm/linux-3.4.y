@@ -167,7 +167,7 @@ static struct nxp_lcd wvga_s70d = {
 	.p_width = 155,
 	.p_height = 93,
 	.bpp = 24,
-	.freq = 63,
+	.freq = 61,
 
 	.timing = {
 		.h_fp = 80,
@@ -185,7 +185,62 @@ static struct nxp_lcd wvga_s70d = {
 		.inv_vsync = 1,
 		.inv_vden = 0,
 	},
+	.gpio_init = s702_gpio_init,
 };
+
+#ifndef CONFIG_ANDROID
+static struct nxp_lcd hvga_p43 = {
+	.width = 480,
+	.height = 272,
+	.p_width = 96,
+	.p_height = 54,
+	.bpp = 32,
+	.freq = 65,
+
+	.timing = {
+		.h_fp =  5,
+		.h_bp = 40,
+		.h_sw =  2,
+		.v_fp =  8,
+		.v_fpe = 1,
+		.v_bp =  9,
+		.v_bpe = 1,
+		.v_sw =  2,
+	},
+	.polarity = {
+		.rise_vclk = 1,
+		.inv_hsync = 1,
+		.inv_vsync = 1,
+		.inv_vden = 0,
+	},
+};
+
+static struct nxp_lcd qvga_w35 = {
+	.width= 320,
+	.height = 240,
+	.p_width = 70,
+	.p_height = 52,
+	.bpp = 16,
+	.freq = 65,
+
+	.timing = {
+		.h_fp =  4,
+		.h_bp = 70,
+		.h_sw =  4,
+		.v_fp =  4,
+		.v_fpe = 1,
+		.v_bp = 12,
+		.v_bpe = 1,
+		.v_sw =  4,
+	},
+	.polarity = {
+		.rise_vclk = 1,
+		.inv_hsync = 0,
+		.inv_vsync = 0,
+		.inv_vden = 0,
+	},
+};
+#endif
 
 static struct nxp_lcd wvga_w50 = {
 	.width= 800,
@@ -443,9 +498,14 @@ static struct {
 	{ "HD700",	&wxga_hd700, 1 },
 	{ "S70",	&wvga_s70,   1 },
 	{ "S702",	&wvga_s702,  3 },
+	{ "S70D",	&wvga_s70d,  0 },
+
+#ifndef CONFIG_ANDROID
+	{ "P43",	&hvga_p43,   0 },
+	{ "W35",	&qvga_w35,   0 },
+#endif
 
 	/* TODO: Testing */
-	{ "S70D",	&wvga_s70d,  1 },
 	{ "W50",	&wvga_w50,   0 },
 	{ "W101",	&wsvga_w101, 1 },
 	{ "A97",	&xga_a97,    0 },
@@ -543,7 +603,10 @@ __setup("ctp=", nanopi2_init_ctp);
 
 unsigned int nanopi2_get_ctp(void)
 {
-	return ctp_type;
+	if (nanopi2_lcd_config[lcd_idx].ctp)
+		return ctp_type;
+	else
+		return CTP_NONE;
 }
 EXPORT_SYMBOL(nanopi2_get_ctp);
 
