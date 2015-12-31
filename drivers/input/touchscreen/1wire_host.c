@@ -507,6 +507,10 @@ void one_wire_timer_proc(unsigned long v)
 		return;
 	}
 
+	if (lcd_type == 0 && total_received > 15) {
+		return;
+	}
+
 	one_wire_timer.expires = jiffies + timer_interval;
 	add_timer(&one_wire_timer);
 
