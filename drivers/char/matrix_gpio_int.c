@@ -16,6 +16,7 @@
 #include <linux/gpio.h>
 
 #define DEVICE_NAME		"sensor"
+#define MAX_SENDEV_NUM      8
 
 struct sensor {
     int gpio;
@@ -32,21 +33,22 @@ struct sensor_desc {
 	struct timer_list timer;
 };
 
-static size_t cur_sensor_num = -1;
+static size_t sensor_num = -1;				// number of sensor has been registered
 static int is_started = 0;
+static struct semaphore lock;
 
-static struct sensor_desc sensor_dev[8] = {
-	{ 0, -1, -1, "sensor1", 0},
-	{ 1, -1, -1, "sensor2", 0 },
-	{ 2, -1, -1, "sensor3", 0 },
-	{ 3, -1, -1, "sensor4", 0 },
-	{ 4, -1, -1, "sensor5", 0 },
-	{ 5, -1, -1, "sensor6", 0 },
-	{ 6, -1, -1, "sensor7", 0 },
-	{ 7, -1, -1, "sensor8", 0 },
+static struct sensor_desc sensor_dev[MAX_SENDEV_NUM] = {
+	{ 0, -1, -1, "gpio_int_sensor1"},
+	{ 1, -1, -1, "gpio_int_sensor2"},
+	{ 2, -1, -1, "gpio_int_sensor3"},
+	{ 3, -1, -1, "gpio_int_sensor4"},
+	{ 4, -1, -1, "gpio_int_sensor5"},
+	{ 5, -1, -1, "gpio_int_sensor6"},
+	{ 6, -1, -1, "gpio_int_sensor7"},
+	{ 7, -1, -1, "gpio_int_sensor8"},
 };
 
-static volatile char sensor_dev_value[8] = {
+static volatile char sensor_dev_value[MAX_SENDEV_NUM] = {
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(sensor_dev_waitq);
@@ -83,7 +85,7 @@ static void gpio_int_sensors_timer(unsigned long _data)
 }
 
 // static int int_counter=0;
-static irqreturn_t button_interrupt(int irq, void *dev_id)
+static irqreturn_t gpio_int_sensor_interrupt(int irq, void *dev_id)
 {
 	// printk("%s %d\n", __FUNCTION__, int_counter++);
 	struct sensor_desc *bdata = (struct sensor_desc *)dev_id;
@@ -91,27 +93,27 @@ static irqreturn_t button_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static int start_sensor(void)
+static int start_all_sensor(void)
 {
 	int irq;
 	int i;
 	int err = 0;
 
-	for (i = 0; i < cur_sensor_num; i++) {
+	for (i = 0; i < sensor_num; i++) {
 		if (!sensor_dev[i].gpio)
 			continue;
 
 		setup_timer(&sensor_dev[i].timer, gpio_int_sensors_timer,
 				(unsigned long)&sensor_dev[i]);
 
-		err = gpio_request(sensor_dev[i].gpio, "button");			
+		err = gpio_request(sensor_dev[i].gpio, "gpio_int_sensor");			
 		if (err) {
 			printk("%s gpio_request %d fail\n", __FUNCTION__, sensor_dev[i].gpio);
             break;
 		}
 
 		irq = gpio_to_irq(sensor_dev[i].gpio);
-		err = request_irq(irq, button_interrupt, IRQ_TYPE_EDGE_FALLING, 
+		err = request_irq(irq, gpio_int_sensor_interrupt, IRQ_TYPE_EDGE_FALLING, 
 				sensor_dev[i].name, (void *)&sensor_dev[i]);
 		if (err) {
 		    printk("%s request_irq %d fail\n", __FUNCTION__, irq);
@@ -142,18 +144,18 @@ static int start_sensor(void)
 
 static int gpio_int_sensors_open(struct inode *inode, struct file *file)
 {
-    if(cur_sensor_num != -1)
-    	return -EBUSY;
-    cur_sensor_num = 0;
+	if (down_trylock(&lock))
+		return -EBUSY;
+    sensor_num = 0;
     is_started = 0;
 	return 0;
 }
 
-static int stop_sensor(void)
+static int stop_all_sensor(void)
 {
 	int irq, i;
 
-	for (i = 0; i < cur_sensor_num; i++) {
+	for (i = 0; i < sensor_num; i++) {
 		if (!sensor_dev[i].gpio)
 			continue;
 
@@ -168,13 +170,14 @@ static int stop_sensor(void)
 
 static int gpio_int_sensors_close(struct inode *inode, struct file *file)
 {
-	// printk("%s cur_sensor_num=%d is_started=%d\n",__FUNCTION__, cur_sensor_num, is_started);
-	if (is_started && cur_sensor_num > 0) {
-		stop_sensor();
+	// printk("%s sensor_num=%d is_started=%d\n",__FUNCTION__, sensor_num, is_started);
+	if (is_started && sensor_num > 0) {
+		stop_all_sensor();
 	}
-	cur_sensor_num = -1;
-	is_started = 0;	
+	sensor_num = -1;
+	is_started = 0;
 	ev_press = 0;
+	up(&lock);
 	return 0;
 }
 
@@ -184,8 +187,6 @@ static int gpio_int_sensors_read(struct file *filp, char __user *buff,
 {
 	unsigned long err;
 	int i = 0;
-
-	// printk("%s cur_sensor_num=%d read_counter=%d ev_press=%d\n",__FUNCTION__, cur_sensor_num, read_counter++, ev_press);
 
 	if (!ev_press) {
 		if (filp->f_flags & O_NONBLOCK)
@@ -197,12 +198,12 @@ static int gpio_int_sensors_read(struct file *filp, char __user *buff,
 	ev_press = 0;
 
 	err = copy_to_user((void *)buff, (const void *)(&sensor_dev_value),
-			min(cur_sensor_num, count));
-	for (i = 0; i<cur_sensor_num; i++) {
+			min(sensor_num, count));
+	for (i = 0; i<sensor_num; i++) {
 		sensor_dev_value[i] = 0;
 	}
 
-	return err ? -EFAULT : min(cur_sensor_num, count);
+	return err ? -EFAULT : min(sensor_num, count);
 }
 
 static unsigned int gpio_int_sensors_poll( struct file *file,
@@ -225,52 +226,43 @@ static long gpio_int_sensors_ioctl(struct file *filp, unsigned int cmd,
 #define START_ALL_SENSOR            (4)
 #define STOP_ALL_SENSOR             (8)
 
-	struct sensor *sen = NULL;
-	//printk("%s cmd=%d\n", __FUNCTION__, cmd);
+	struct sensor sen;
+	void __user *argp;
+	int del_dev;
+	int ret;
+
+	//printk("%s cmd=%d\n", __func__, cmd);
 	switch(cmd) {
 		case ADD_SENSOR:
-			if (is_started == 0) {
-				if ((void*)arg != NULL) {
-					sen = (struct sensor *)arg;				
-					sensor_dev[cur_sensor_num].gpio = sen->gpio;
-					sensor_dev[cur_sensor_num].int_type= sen->int_type;
-					sensor_dev[cur_sensor_num].is_used = 1;
-					cur_sensor_num++;
-				}
-				else {
-					return -EINVAL;
-				}	
-			} else {
+			if (is_started != 0 || sensor_num >= MAX_SENDEV_NUM)
+				return -EBUSY;
+			argp = (void __user *)arg;
+			if (copy_from_user(&sen, argp, sizeof sen))
 				return -EINVAL;
-			}
+			sensor_dev[sensor_num].gpio = sen.gpio;
+			sensor_dev[sensor_num].int_type= sen.int_type;
+			sensor_num++;
 			break;
 		case DEL_SENSOR:
-			if (is_started == 0) {
-				sen = (struct sensor *)arg;
-				sensor_dev[cur_sensor_num].gpio = -1;					
-				sensor_dev[cur_sensor_num].int_type= -1;
-				sensor_dev[cur_sensor_num].is_used = 0;
-				cur_sensor_num--;
-			} else {
-				return -EINVAL;
-			}
+			del_dev = (int)arg;
+			// printk("%s del_dev=%d\n", __func__, del_dev);
+			if (is_started != 0 || sensor_num <= 0 || del_dev != sensor_num) 
+				return -EINVAL;			
+			sensor_dev[sensor_num].gpio = -1;					
+			sensor_dev[sensor_num].int_type= -1;			
+			sensor_num--;
 			break;
 		case START_ALL_SENSOR:
-			if (is_started == 0) {
-				if(start_sensor() < 0)
-					return -EINVAL;
-			} else {
-				return -EINVAL;
-			}
-			is_started = 1;
+			if (is_started != 0 || sensor_num <= 0)
+				return -EBUSY;
+			if((ret = start_all_sensor()) < 0)
+				return ret;
+			is_started = 1;					
 			break;
 		case STOP_ALL_SENSOR:
-			if (is_started == 1) {
-				if(stop_sensor() < 0)
-					return -EINVAL;
-			} else {
-				return -EINVAL;
-			}
+			if (is_started != 1 || sensor_num <= 0)
+				return -EBUSY;
+			stop_all_sensor();
 			is_started = 0;
 			break;
 		default:
@@ -298,17 +290,14 @@ static struct miscdevice misc = {
 
 static int __init sensor_dev_init(void)
 {
-	int ret;
-
-	ret = misc_register(&misc);
-
-	printk(DEVICE_NAME"\tinitialized\n");
-
-	return ret;
+	printk("Matirx GPIO Int sensor init\n");
+	sema_init(&lock, 1);
+	return misc_register(&misc);
 }
 
 static void __exit sensor_dev_exit(void)
 {
+	printk("Matirx GPIO Int sensor exit\n");
 	misc_deregister(&misc);
 }
 
