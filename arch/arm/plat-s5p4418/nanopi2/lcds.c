@@ -17,6 +17,7 @@
 #include <mach/soc.h>
 #include <nxp-fb.h>
 #include <board-revision.h>
+#include <linux/platform_data/ctouch.h>
 
 static inline void common_gpio_init(void)
 {
@@ -524,9 +525,9 @@ static struct {
 	{ "HD101",	&wxga_hd101, 1 },
 	{ "HD700",	&wxga_hd700, 1 },
 	{ "S70",	&wvga_s70,   1 },
-	{ "S702",	&wvga_s702,  3 },
+	{ "S702",	&wvga_s702,  1 },
 	{ "S70D",	&wvga_s70d,  0 },
-	{ "X710",	&wsvga_x710, 1 },
+	{ "X710",	&wsvga_x710, CTP_ITE7260 },
 
 #ifndef CONFIG_ANDROID
 	{ "P43",	&hvga_p43,   0 },
@@ -578,6 +579,8 @@ static int __init nanopi2_setup_lcd(char *str)
 	}
 
 __ret:
+	board_set_ctp(nanopi2_lcd_config[lcd_idx].ctp);
+
 	printk("Display: %s selected\n", nanopi2_lcd_config[lcd_idx].name);
 	return 0;
 }
@@ -604,9 +607,8 @@ EXPORT_SYMBOL(nanopi2_get_lcd_res);
 
 
 #if defined(CONFIG_TOUCHSCREEN_GOODIX) || defined(CONFIG_TOUCHSCREEN_FT5X0X) || \
+	defined(CONFIG_TOUCHSCREEN_IT7260) || \
 	defined(CONFIG_TOUCHSCREEN_1WIRE)
-#include <linux/platform_data/ctouch.h>
-
 static unsigned int ctp_type = CTP_AUTO;
 
 static int __init nanopi2_init_ctp(char *str)

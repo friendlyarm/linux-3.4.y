@@ -966,4 +966,16 @@ config TOUCHSCREEN_IF
 	bool
 	default y if TOUCHSCREEN_1WIRE
 
+config TOUCHSCREEN_IT7260
+	tristate "ITE it7260 TouchScreen driver"
+	depends on PLAT_S5P4418_NANOPI2
+	help
+	  Say Y here to support ITE it7260 based touchscreen on
+	  FriendlyARM NanoPi2 development board.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called it7260_mts.ko.
+
 endif

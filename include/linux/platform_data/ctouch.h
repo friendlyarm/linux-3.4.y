@@ -19,9 +19,9 @@
 
 enum {
 	CTP_NONE = 0,
-	CTP_GT80X,
-	CTP_FT5X06,
 	CTP_AUTO,
+	CTP_FT5X06,
+	CTP_ITE7260,
 	CTP_MAX
 };
 

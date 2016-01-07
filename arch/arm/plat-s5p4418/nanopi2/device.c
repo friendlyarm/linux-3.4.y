@@ -512,6 +512,15 @@ static struct i2c_board_info __initdata ft5x0x_i2c_bdi = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_IT7260)
+#define	IT7260_I2C_BUS		(2)
+
+static struct i2c_board_info __initdata it7260_i2c_bdi = {
+	I2C_BOARD_INFO("IT7260", (0x8C>>1)),
+	.irq = PB_PIO_IRQ(CFG_IO_TOUCH_IRQ),
+};
+#endif
+
 #if defined(CONFIG_TOUCHSCREEN_1WIRE)
 #include <linux/platform_data/touchscreen-one-wire.h>
 
@@ -1603,6 +1612,11 @@ void __init nxp_board_devices_register(void)
 	ft5x0x_pdata.screen_max_x = lcd->width;
 	ft5x0x_pdata.screen_max_y = lcd->height;
 	i2c_register_board_info(FT5X0X_I2C_BUS, &ft5x0x_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_IT7260)
+	printk("plat: add touch(it7260) device\n");
+	i2c_register_board_info(IT7260_I2C_BUS, &it7260_i2c_bdi, 1);
 #endif
 
 #if defined(CONFIG_TOUCHSCREEN_1WIRE)
