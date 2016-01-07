@@ -294,6 +294,33 @@ static struct nxp_lcd wsvga_w101 = {
 	},
 };
 
+static struct nxp_lcd wsvga_x710 = {
+	.width= 1024,
+	.height = 600,
+	.p_width = 154,
+	.p_height = 90,
+	.bpp = 24,
+	.freq = 61,
+
+	.timing = {
+		.h_fp = 84,
+		.h_bp = 84,
+		.h_sw = 88,
+		.v_fp = 10,
+		.v_fpe = 1,
+		.v_bp = 10,
+		.v_bpe = 1,
+		.v_sw = 20,
+	},
+	.polarity = {
+		.rise_vclk = 0,
+		.inv_hsync = 1,
+		.inv_vsync = 1,
+		.inv_vden = 0,
+	},
+	.gpio_init = hd101_gpio_init,
+};
+
 static struct nxp_lcd xga_a97 = {
 	.width = 1024,
 	.height = 768,
@@ -499,6 +526,7 @@ static struct {
 	{ "S70",	&wvga_s70,   1 },
 	{ "S702",	&wvga_s702,  3 },
 	{ "S70D",	&wvga_s70d,  0 },
+	{ "X710",	&wsvga_x710, 1 },
 
 #ifndef CONFIG_ANDROID
 	{ "P43",	&hvga_p43,   0 },
