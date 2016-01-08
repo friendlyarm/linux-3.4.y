@@ -44,6 +44,7 @@
 #include <mach/platform.h>
 #include <mach/devices.h>
 
+//#define DEBUG 1
 
 /*
  * This macro is used to define some register default values.
@@ -393,6 +394,7 @@ struct pl022 {
 	char				*dummypage;
 	bool				dma_running;
 #endif
+	struct completion   xfer_completion;
 };
 
 /**
@@ -423,6 +425,7 @@ struct chip_data {
 	enum ssp_writing write;
 	void (*cs_control) (u32 command);
 	int xfer_type;
+	int chip_id;
 };
 
 /**
@@ -496,6 +499,7 @@ static void giveback(struct pl022 *pl022)
 	/* disable the SPI/SSP operation */
 	writew((readw(SSP_CR1(pl022->virtbase)) &
 		(~SSP_CR1_MASK_SSE)), SSP_CR1(pl022->virtbase));
+	complete(&pl022->xfer_completion);	
 }
 
 /**
@@ -635,7 +639,11 @@ static void load_ssp_default_config(struct pl022 *pl022)
  */
 static void readwriter(struct pl022 *pl022)
 {
-
+#ifdef DEBUG
+	void *orig_rx, *orig_tx;
+	orig_rx = pl022->rx;
+	orig_tx = pl022->tx;
+#endif	
 	/*
 	 * The FIFO depth is different between primecell variants.
 	 * I believe filling in too much in the FIFO might cause
@@ -727,6 +735,13 @@ static void readwriter(struct pl022 *pl022)
 	 * When we exit here the TX FIFO should be full and the RX FIFO
 	 * should be empty
 	 */
+	// r/w# rx:all sent unsent tx:all sent unsent
+#ifdef DEBUG		
+		printk("%d/%d# rx: %d %d %d tx: %d %d %d\n", 
+			pl022->read, pl022->write,
+			pl022->rx_end - orig_rx, pl022->rx - orig_rx, pl022->rx_end - pl022->rx,
+			pl022->tx_end - orig_tx, pl022->tx - orig_tx, pl022->tx_end - pl022->tx);
+#endif
 }
 
 /**
@@ -1357,7 +1372,8 @@ static void pump_transfers(unsigned long data)
 	/* Flush the FIFOs and let's go! */
 	flush(pl022);
 
-	if (pl022->cur_chip->enable_dma) {
+	if (pl022->cur_chip->enable_dma && !(pl022->cur_transfer->len % 4) &&  (pl022->cur_transfer->len < 4096)) {		//bok add
+	//if (pl022->cur_chip->enable_dma) {
 		if (configure_dma(pl022)) {
 			dev_dbg(&pl022->adev->dev,
 				"configuration of DMA failed, fall back to interrupt mode\n");
@@ -1492,6 +1508,9 @@ static int pl022_transfer_one_message(struct spi_master *master,
 				      struct spi_message *msg)
 {
 	struct pl022 *pl022 = spi_master_get_devdata(master);
+	static int last_chip_id = 0;
+
+	INIT_COMPLETION(pl022->xfer_completion);
 
 	/* Initial message state */
 	pl022->cur_msg = msg;
@@ -1506,11 +1525,25 @@ static int pl022_transfer_one_message(struct spi_master *master,
 	restore_state(pl022);
 	flush(pl022);
 
+	if (pl022->cur_chip->chip_id != last_chip_id) {
+		udelay(100);
+		// printk("cur_id=%d last_id=%d\n", pl022->cur_chip->chip_id, last_chip_id);
+	}	
+	last_chip_id = pl022->cur_chip->chip_id;
+	
 	if (pl022->cur_chip->xfer_type == POLLING_TRANSFER)
 		do_polling_transfer(pl022);
 	else
 		do_interrupt_dma_transfer(pl022);
 
+	if (!wait_for_completion_timeout(&pl022->xfer_completion, HZ)) {
+		printk("%s timeout\n", __func__);
+		writew(DISABLE_ALL_INTERRUPTS, SSP_IMSC(pl022->virtbase));
+		writew(CLEAR_ALL_INTERRUPTS, SSP_ICR(pl022->virtbase));
+		pl022->cur_msg->state = STATE_ERROR;
+		tasklet_schedule(&pl022->pump_transfers);
+	}
+	
 	return 0;
 }
 
@@ -1679,10 +1712,12 @@ static int calculate_effective_freq(struct pl022 *pl022, int freq, struct
 	/* cpsdvsr = 254 & scr = 255 */
 	min_tclk = spi_rate(rate, CPSDVR_MAX, SCR_MAX);
 
-	if (freq > max_tclk)
+	if (freq > max_tclk) {
 		dev_warn(&pl022->adev->dev,
 			"Max speed that can be programmed is %d Hz, you requested %d\n",
 			max_tclk, freq);
+		freq = max_tclk;	
+	}		
 
 	if (freq < min_tclk) {
 		dev_err(&pl022->adev->dev,
@@ -1732,9 +1767,10 @@ static int calculate_effective_freq(struct pl022 *pl022, int freq, struct
 
 	clk_freq->cpsdvsr = (u8) (best_cpsdvsr & 0xFF);
 	clk_freq->scr = (u8) (best_scr & 0xFF);
-	dev_dbg(&pl022->adev->dev,
-		"SSP Target Frequency is: %u, Effective Frequency is %u\n",
-		freq, best_freq);
+	if (freq != best_freq) {
+		printk("SSP Target Frequency is: %u, Effective Frequency is %u\n",
+			freq, best_freq);
+	}	
 	dev_dbg(&pl022->adev->dev, "SSP cpsdvsr = %d, scr = %d\n",
 		clk_freq->cpsdvsr, clk_freq->scr);
 
@@ -1779,6 +1815,7 @@ static int pl022_setup(struct spi_device *spi)
 	struct pl022 *pl022 = spi_master_get_devdata(spi->master);
 	unsigned int bits = spi->bits_per_word;
 	u32 tmp;
+	static int chip_id = 0;
 
 	if (!spi->max_speed_hz)
 		return -EINVAL;
@@ -1795,6 +1832,8 @@ static int pl022_setup(struct spi_device *spi)
 		}
 		dev_dbg(&spi->dev,
 			"allocated memory for controller's runtime state\n");
+		chip->chip_id = chip_id;
+		chip_id++;
 	}
 
 	/* Get controller data if one is supplied */
@@ -2126,6 +2165,8 @@ pl022_probe(struct amba_device *adev, const struct amba_id *id)
 	} else {
 		pm_runtime_put(dev);
 	}
+	
+	init_completion(&pl022->xfer_completion);
 	return 0;
 
  err_spi_register:
