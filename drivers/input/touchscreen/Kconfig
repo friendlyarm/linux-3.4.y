@@ -978,4 +978,13 @@ config TOUCHSCREEN_IT7260
 	  To compile this driver as a module, choose M here: the
 	  module will be called it7260_mts.ko.
 
+config TOUCHSCREEN_IT7260_SINGLE
+	bool "Disable MULTI-Touch Mode"
+	depends on TOUCHSCREEN_IT7260
+	default n
+	help
+	  Say Y here to disable multi-touch mode for Debian, Ubuntu, QT.
+
+	  If unsure, say N.
+
 endif

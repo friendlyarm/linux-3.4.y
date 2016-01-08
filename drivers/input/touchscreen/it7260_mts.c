@@ -1,7 +1,10 @@
 /*
-* multi touch screen driver for it7260
-* base on multi-touch protocol A
-*/
+ * multi touch screen driver for it7260
+ * base on multi-touch protocol A
+ *
+ * Copyright (C) Guangzhou FriendlyARM Computer Tech. Co., Ltd.
+ * (http://www.friendlyarm.com)
+ */
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/input.h>
@@ -117,8 +120,7 @@ static void it7260_ts_poscheck(struct work_struct *work)
 
 	i2c_master_read_it7260(priv->client, QUERY_BUF, &query, 1);
 	if (!(query & 0x80)) {
-		input_mt_sync(priv->input);
-		goto sync;
+		goto up;
 	}
 
 	memset(buf, 0, sizeof(buf));
@@ -169,13 +171,21 @@ static void it7260_ts_poscheck(struct work_struct *work)
 
 	for (i = 0; i < PT_MAX; i++) {
 		if (xpos[i] || ypos[i] || event[i]) {
+			touch_point++;
+#ifdef CONFIG_TOUCHSCREEN_IT7260_SINGLE
+			input_report_abs(priv->input, ABS_X, xpos[i]);
+			input_report_abs(priv->input, ABS_Y, ypos[i]);
+			input_report_abs(priv->input, ABS_PRESSURE, (event[i] << 4));
+			input_report_key(priv->input, BTN_TOUCH, 1);
+			break;
+#else
 			input_report_abs(priv->input, ABS_MT_POSITION_X, xpos[i]);
 			input_report_abs(priv->input, ABS_MT_POSITION_Y, ypos[i]);
 			input_report_abs(priv->input, ABS_MT_PRESSURE,   (event[i] << 4));
 			input_report_abs(priv->input, ABS_MT_TOUCH_MAJOR, event[i]);
 			input_report_abs(priv->input, ABS_MT_TRACKING_ID, i);
 			input_mt_sync(priv->input);
-			touch_point++;
+#endif
 #if 0
 			printk("finger %d >  (%4d, %4d),  event = %d\n",
 					i, ypos[i], xpos[i], event[i]);
@@ -183,9 +193,15 @@ static void it7260_ts_poscheck(struct work_struct *work)
 		}
 	}
 
+up:
 	if (!touch_point) {
 		/* All fingers are removed */
+#ifdef CONFIG_TOUCHSCREEN_IT7260_SINGLE
+		input_report_abs(priv->input, ABS_PRESSURE, 0);
+		input_report_key(priv->input, BTN_TOUCH, 0);
+#else
 		input_mt_sync(priv->input);
+#endif
 	}
 
 sync:
@@ -283,11 +299,22 @@ static int it7260_ts_probe(struct i2c_client *client,
 	input_set_capability(input, EV_KEY, KEY_HOMEPAGE);
 	input_set_capability(input, EV_KEY, KEY_SEARCH);
 
+#ifdef CONFIG_TOUCHSCREEN_IT7260_SINGLE
+	set_bit(ABS_X, input->absbit);
+	set_bit(ABS_Y, input->absbit);
+	set_bit(ABS_PRESSURE, input->absbit);
+	set_bit(BTN_TOUCH, input->keybit);
+
+	input_set_abs_params(input, ABS_X, 0, 1024, 0, 0);
+	input_set_abs_params(input, ABS_Y, 0,  600, 0, 0);
+	input_set_abs_params(input, ABS_PRESSURE, 0, 255, 0, 0);
+#else
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, 1024, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0,  600, 0, 0);
 	input_set_abs_params(input, ABS_MT_TOUCH_MAJOR, 0,  16, 0, 0);
 	input_set_abs_params(input, ABS_MT_WIDTH_MAJOR, 0, 2, 0, 0);
 	input_set_abs_params(input, ABS_MT_TRACKING_ID, 0, 5, 0, 0);
+#endif
 
 	input->name = "it7260_ts";
 	input->phys = "I2C";
