@@ -54,7 +54,7 @@ static int			alm_enable_irq = 0;
 #define	RTC_TIME_YEAR 	(1970)	/* Jan 1 1970 00:00:00 */
 #define RTC_TIME_MAX	0x69546780	// 2025.12.31 00:00:00
 #define RTC_TIME_MIN	0x52c35a80	// 2014.01.01 00:00:00
-#define RTC_TIME_DFT	0x4a9c6400	// 2009.09.01 00:00:00
+#define RTC_TIME_DFT	0x56863200	// 2016.01.01 08:00:00
 
 static unsigned long	rtc_time_offs;
 
