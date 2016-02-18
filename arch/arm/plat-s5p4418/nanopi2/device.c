@@ -142,9 +142,10 @@ struct nxp_cpufreq_plat_data dfs_plat_data = {
 	.freq_table		= dfs_freq_table,
 	.table_size		= ARRAY_SIZE(dfs_freq_table),
 	.max_cpufreq	= 1400*1000,
-	.max_retention	=   20*1000,
-	.rest_cpufreq	=  400*1000,
-	.rest_retention	=    1*1000,
+	.max_retention	=   10*1000,
+	.rest_cpufreq	=  800*1000,
+	.rest_retention	=    2*1000,
+	.fixed_voltage	= 1280*1000,
 };
 
 static struct platform_device dfs_plat_device = {
@@ -1514,6 +1515,11 @@ static struct gpio_led board_leds[] = {
 		.gpio		= (PAD_GPIO_B + 12),
 		.active_low	= 1,
 		.default_trigger	= "heartbeat",
+	}, {
+		.name		= "led2",
+		.gpio		= (PAD_GPIO_B + 11),
+		.active_low	= 1,
+		.default_trigger	= "none",
 	},
 };
 
@@ -1527,6 +1533,34 @@ static struct platform_device gpio_led_device = {
 	.id			= -1,
 	.dev		= {
 		.platform_data	= &gpio_led_pdata,
+	},
+};
+#endif
+
+#if defined(CONFIG_LEDS_PWM) || defined(CONFIG_LEDS_PWM_MODULE)
+#include <linux/leds_pwm.h>
+
+static struct led_pwm pwm_leds[] = {
+	{
+		.name		= "ledp1",
+		.pwm_id		= 2,
+		.active_low	= 1,
+		.max_brightness	= 20,
+		.pwm_period_ns	= NSEC_PER_SEC / 500,
+		.default_trigger	= "none",
+	},
+};
+
+static struct led_pwm_platform_data pwm_led_pdata = {
+	.num_leds	= ARRAY_SIZE(pwm_leds),
+	.leds		= pwm_leds,
+};
+
+static struct platform_device pwm_led_device = {
+	.name		= "leds_pwm",
+	.id			= -1,
+	.dev		= {
+		.platform_data	= &pwm_led_pdata,
 	},
 };
 #endif
@@ -1754,6 +1788,11 @@ void __init nxp_board_devices_register(void)
 #if defined(CONFIG_LEDS_GPIO)
 	printk("plat: add device gpio_led\n");
 	platform_device_register(&gpio_led_device);
+#endif
+
+#if defined(CONFIG_LEDS_PWM) || defined(CONFIG_LEDS_PWM_MODULE)
+	printk("plat: add device pwm_led\n");
+	platform_device_register(&pwm_led_device);
 #endif
 
 	/* END */
