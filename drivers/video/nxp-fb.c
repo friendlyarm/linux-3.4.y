@@ -289,7 +289,6 @@ static int nxp_fb_dev_output(struct nxp_fb_param *par, int enable)
 #endif
 }
 
-#if defined(CONFIG_LOGO_NXP_COPY)
 static inline void *fb_copy_map(struct page *page, unsigned int phys, int size)
 {
 	unsigned long num_pages, i;
@@ -320,6 +319,7 @@ static inline  void fb_copy_unmap(struct page *page, void *virt)
 	vunmap((void*)virt);
 }
 
+#if defined(CONFIG_LOGO_NXP_COPY)
 static unsigned nxp_fb_dev_get_addr(struct nxp_fb_param *par)
 {
 	unsigned int phyaddr = 0;
@@ -526,7 +526,7 @@ static struct fb_info *nxp_fb_init_fb(int fb, struct device *dev)
 	info->flags	= FBINFO_FLAG_DEFAULT;
 
 	/* default colormap: palette */
-	if(fb_alloc_cmap(&info->cmap, 256, 0)) {
+	if (fb_alloc_cmap(&info->cmap, 256, 0)) {
 		printk(KERN_ERR "Fail, unable to allocate cmap for frame buffer(%d) ...\n", fb);
 		framebuffer_release(info);
 		return NULL;
@@ -561,7 +561,7 @@ static int nxp_fb_setup_param(int fb, struct fb_info *info, void *data)
 	/* clear palette buffer */
 	par->info = info;
 	par->status = 0;
-	for(i = 0; i < 256; i++)
+	for (i = 0; i < 256; i++)
 		par->palette_buffer[i] = FB_PALETTE_CLEAR;
 
 	/* set hw variables */
@@ -809,7 +809,7 @@ static int nxp_fb_alloc_mem(struct fb_info *info)
 
 	length = ((x_resol * y_resol * dev->pixelbit)>>3) * dev->buffer_num;
 
-	if(! length)
+	if (!length)
 		return 0;
 
 	pr_debug("%s: %s fb %d (%d * %d - %d bpp), len:%d[align:%d], fb_phys=0x%x...\n",
@@ -828,6 +828,11 @@ static int nxp_fb_alloc_mem(struct fb_info *info)
     dev->fb_phy_len  = PAGE_ALIGN(length);
     dev->fb_vir_base = dev->dma_buf_data.context[0].virt;
     dev->fb_remapped = 0;
+
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+    dev->fb_vir_base = fb_copy_map(NULL, dev->fb_phy_base, dev->fb_phy_len);
+#endif
+
 #else
 	if (dev->fb_phy_base) {
 		/*
@@ -855,7 +860,7 @@ static int nxp_fb_alloc_mem(struct fb_info *info)
 		dev->fb_remapped = 0;
 	}
 #endif
-	if(dev->fb_vir_base) {
+	if (dev->fb_vir_base) {
 		info->screen_base = dev->fb_vir_base;
 		info->fix.smem_start = dev->fb_phy_base;
 	}
@@ -869,8 +874,11 @@ static void nxp_fb_free_mem(struct fb_info *info)
 	struct nxp_fb_device *dev = &par->fb_dev;
 	pr_debug("%s\n", __func__);
 
-	if(dev->fb_vir_base) {
+	if (dev->fb_vir_base) {
 #ifdef CONFIG_FB_NXP_ION_MEM
+#ifdef CONFIG_FRAMEBUFFER_CONSOLE
+        fb_copy_unmap(NULL, dev->fb_vir_base);
+#endif
         nxp_fb_free_dma_buf(dev, &dev->dma_buf_data);
 #else
 		if (dev->fb_remapped) {
@@ -1029,7 +1037,7 @@ static int nxp_fb_set_par(struct fb_info *info)
 
         nxp_fb_setup_info(info);
 		ret = nxp_fb_alloc_mem(info);
-		if(ret) {
+		if (ret) {
 			printk("Fail, unable to allcate frame buffer...\n");
 			return -EINVAL;
 		}
@@ -1398,7 +1406,7 @@ static int nxp_fb_probe(struct platform_device *pdev)
 
 	/*	allocate fb_info and init */
 	info = nxp_fb_init_fb(pdev->id, &pdev->dev);
-	if(! info) {
+	if (!info) {
 		ret = -ENOMEM;
 		goto err_fb;
 	}
@@ -1423,7 +1431,7 @@ static int nxp_fb_probe(struct platform_device *pdev)
 
 	/*	allocate frame buffer memory from here */
 	ret = nxp_fb_alloc_mem(info);
-	if(ret) {
+	if (ret) {
 		printk(KERN_ERR "Fail, unable to allcate frame buffer (%d)\n", pdev->id);
 		goto err_map;
 	}
@@ -1445,7 +1453,7 @@ static int nxp_fb_probe(struct platform_device *pdev)
 	}
 
 	ret = register_framebuffer(info);
-	if(ret < 0) {
+	if (ret < 0) {
 		printk(KERN_ERR "Fail, unable to register frame buffer(%d)\n", pdev->id);
 		goto err_reg;
 	}
