@@ -103,6 +103,7 @@ struct cpufreq_dvfs_info {
     unsigned long resume_state;
     long boot_frequency;
     int  boot_voltage;
+    int  fixed_uV;
     /* check frequency duration */
 	int  pre_freq_point;
     unsigned long check_state;
@@ -268,7 +269,7 @@ static unsigned long nxp_cpufreq_change_frequency(struct cpufreq_dvfs_info *dvfs
 		return freqs->old;
 
 	/* pre voltage */
-	if (freqs->new >= freqs->old)
+	if (freqs->new > freqs->old && !dvfs->fixed_uV)
 		nxp_cpufreq_change_voltage(dvfs, freqs->new, margin);
 
 #ifdef CONFIG_LOCAL_TIMERS
@@ -298,7 +299,7 @@ static unsigned long nxp_cpufreq_change_frequency(struct cpufreq_dvfs_info *dvfs
 		cpufreq_notify_transition(freqs, CPUFREQ_POSTCHANGE);
 
 	/* post voltage */
-	if (freqs->old > freqs->new)
+	if (freqs->old > freqs->new && !dvfs->fixed_uV)
 		nxp_cpufreq_change_voltage(dvfs, freqs->new, margin);
 
 	return rate_khz;
@@ -851,6 +852,7 @@ static void *nxp_cpufreq_make_table(struct platform_device *pdev,
 	struct cpufreq_frequency_table *freq_table;
 	struct cpufreq_asv_ops *ops = &asv_ops;
 	unsigned long (*plat_tbs)[2] = NULL;
+	unsigned long plat_n_voltage = 0;
  	int tb_size, asv_size = 0;
 	int id = 0, n = 0;
 
@@ -879,9 +881,12 @@ static void *nxp_cpufreq_make_table(struct platform_device *pdev,
 	/* make frequency table with platform data */
 	if (asv_size > 0) {
 		for (n = 0, id = 0; tb_size > id && asv_size > n; n++) {
-			if (plat_tbs && plat_tbs[id][1] > 0) {
+			if (plat_tbs[id][1] > 0)
+				plat_n_voltage = plat_tbs[id][1];
+
+			if (plat_tbs && plat_n_voltage) {
 				dvfs_tables[id][0] = plat_tbs[id][0];	/* frequency */
-				dvfs_tables[id][1] = plat_tbs[id][1];	/* voltage */
+				dvfs_tables[id][1] = plat_n_voltage;	/* voltage */
 
 			} else if (plat_tbs) {
 				for (n = 0; asv_size > n; n++) {
@@ -899,7 +904,8 @@ static void *nxp_cpufreq_make_table(struct platform_device *pdev,
 			}
 			freq_table[id].index = id;
 			freq_table[id].frequency = dvfs_tables[id][0];
-			printk("ASV %2d = %8ldkhz, %8ld uV \n", id, dvfs_tables[id][0], dvfs_tables[id][1]);
+			printk(KERN_DEBUG "ASV %2d = %8ld khz, %4ld mV\n", id,
+					dvfs_tables[id][0], dvfs_tables[id][1]/1000);
 			/* next */
 			id++;
 		}
@@ -949,12 +955,17 @@ static int nxp_cpufreq_set_supply(struct platform_device *pdev,
 		dvfs->asv_ops->modify_vol_table(dvfs->dvfs_table, dvfs->table_size,
 							margin->value, margin->minus, margin->percent);
 
-	/* chnage to margin voltage */
+	/* change to margin voltage */
 	if (margin->value) {
 		nxp_cpufreq_change_voltage(dvfs, dvfs->boot_frequency, true);
 		printk("DVFS: adjust %ld margin %s%d%s \n",
 				dvfs->boot_frequency, margin->minus?"-":"+", margin->value,
 				margin->percent?"%":"mV");
+	}
+
+	if (pdata->fixed_voltage > 0) {
+		dvfs->fixed_uV = pdata->fixed_voltage;
+		regulator_set_voltage(dvfs->volt, dvfs->fixed_uV, dvfs->fixed_uV);
 	}
 
 	printk("DVFS: regulator %s\n", pdata->supply_name);
