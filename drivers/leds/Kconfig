@@ -482,6 +482,15 @@ config LEDS_TRIGGER_SLEEP
 	help
 	  This turns LEDs on when the screen is off but the cpu still running.
 
+config LEDS_TRIGGER_FADING
+	tristate "LED Fading Trigger"
+	depends on LEDS_TRIGGERS && HAVE_PWM
+	help
+	  This allows LEDs to be controlled by a programmable timer
+	  via sysfs with fading effect.
+
+	  If unsure, say Y.
+
 comment "iptables trigger is under Netfilter config (LED target)"
 	depends on LEDS_TRIGGERS
 
