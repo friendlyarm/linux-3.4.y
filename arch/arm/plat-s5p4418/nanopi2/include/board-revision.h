@@ -28,11 +28,13 @@
  *  0b001 - NanoPC-T2
  *  0b011 - Smart4418
  *  0b100 - NanoPi 2 Fire
+ *  0b101 - NanoPi 2 Hello
  */
 #define HWREV_A			0x0
 #define HWREV_B			0x1
 #define HWREV_C			0x3
 #define HWREV_D			0x4
+#define HWREV_E			0x5
 
 
 extern int board_get_revision(void);
@@ -41,6 +43,7 @@ extern int board_get_revision(void);
 #define board_is_nanopc()	(board_get_revision() == HWREV_B)
 #define board_is_smart4418()	(board_get_revision() == HWREV_C)
 #define board_is_fire()		(board_get_revision() == HWREV_D)
+#define board_is_hello()	(board_get_revision() == HWREV_E)
 
 
 static inline int board_with_ap6212(void) {
