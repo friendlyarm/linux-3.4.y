@@ -122,5 +122,6 @@ struct plat_stmmacenet_data {
 	void *custom_cfg;
 	void *custom_data;
 	void *bsp_priv;
+	char dev_addr[6];
 };
 #endif

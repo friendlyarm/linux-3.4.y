@@ -157,6 +157,31 @@ static struct platform_device dfs_plat_device = {
 #endif
 
 /*------------------------------------------------------------------------------
+ * Network MAC address
+ */
+#include <linux/cryptohash.h>
+
+#define ETHER_MAC_TAG	"ethmac"
+
+extern void nxp_cpu_id_ecid(u32 ecid[4]);
+
+static void make_ether_addr(u8 *addr) {
+	u32 hash[20];
+
+	memset(hash, 0, sizeof(hash));
+	memcpy(hash + 12, ETHER_MAC_TAG, sizeof(ETHER_MAC_TAG));
+	nxp_cpu_id_ecid(hash + 4);
+
+	md5_transform(hash, hash + 4);
+	hash[0] ^= hash[2];
+	hash[1] ^= hash[3];
+
+	memcpy(addr, (char *)hash, 6);
+	addr[0] &= 0xfe;	/* clear multicast bit */
+	addr[0] |= 0x02;
+}
+
+/*------------------------------------------------------------------------------
  * Network DM9000
  */
 #if defined(CONFIG_DM9000) || defined(CONFIG_DM9000_MODULE)
@@ -1775,6 +1800,7 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_NXPMAC_ETH)
 	if (!board_is_nanopi()) {
+		make_ether_addr(nxpmac_plat_data.dev_addr);
 		printk("plat: add device nxp-gmac\n");
 		platform_device_register(&nxp_gmac_dev);
 	}

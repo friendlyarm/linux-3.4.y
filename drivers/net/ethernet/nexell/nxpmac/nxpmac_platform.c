@@ -155,6 +155,8 @@ static int stmmac_pltfr_probe(struct platform_device *pdev)
 			pr_err("%s: main dt probe failed", __func__);
 			goto out_unmap;
 		}
+	} else if (is_valid_ether_addr(plat_dat->dev_addr)) {
+		mac = plat_dat->dev_addr;
 	}
 
 	/* Custom initialisation (if needed)*/
