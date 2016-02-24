@@ -23,6 +23,10 @@ ifeq ($(CONFIG_PLAT_S5P6818_ASB),y)
 PLATBOARD :=asb
 endif
 
+ifeq ($(CONFIG_PLAT_S5P6818_NANOPI3),y)
+PLATBOARD := nanopi3
+endif
+
 #
 # Build options
 #
@@ -35,6 +39,4 @@ KBUILD_CFLAGS 	+= -I$(srctree)/$(platdirs)common	\
 				   -I$(srctree)/$(platdirs)$(PLATBOARD)/include
 KBUILD_CPPFLAGS += -I$(srctree)/$(platdirs)common	\
 				   -I$(srctree)/$(platdirs)$(PLATBOARD)/include
-
-
 
