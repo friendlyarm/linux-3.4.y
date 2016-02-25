@@ -1531,7 +1531,7 @@ static inline void _dwmci2_add_device(void) {
 /*------------------------------------------------------------------------------
  * RFKILL driver
  */
-#if defined(CONFIG_NXP_RFKILL)
+#if defined(CONFIG_RFKILL_NXP)
 struct rfkill_dev_data  rfkill_dev_data =
 {
 	.supply_name 	= "vgps_3.3V",	// vwifi_3.3V, vgps_3.3V
