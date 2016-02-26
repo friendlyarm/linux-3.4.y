@@ -387,7 +387,7 @@ static void nxp_platform_fb_data(struct nxp_lcd *lcd)
 }
 #endif /* CONFIG_FB_NXP */
 
-#if defined (CONFIG_NXP_DISPLAY_LCD)
+#if defined(CONFIG_NXP_DISPLAY)
 static void nxp_platform_disp_init(struct nxp_lcd *lcd)
 {
 	struct disp_vsync_info vsync;
@@ -398,6 +398,7 @@ static void nxp_platform_disp_init(struct nxp_lcd *lcd)
 	if (lcd) {
 		timing = &lcd->timing;
 
+		vsync.interlace		= 0;
 		vsync.h_active_len	= lcd->width;
 		vsync.h_sync_width	= timing->h_sw;
 		vsync.h_back_porch	= timing->h_bp;
@@ -417,6 +418,7 @@ static void nxp_platform_disp_init(struct nxp_lcd *lcd)
 		do_div(clk, div);
 
 		vsync.pixel_clock_hz= div;
+		vsync.clock_gen_num	= 0;
 		vsync.clk_src_lv0	= CFG_DISP_PRI_CLKGEN0_SOURCE;
 		vsync.clk_div_lv0	= clk;
 		vsync.clk_src_lv1	= CFG_DISP_PRI_CLKGEN1_SOURCE;
@@ -426,7 +428,12 @@ static void nxp_platform_disp_init(struct nxp_lcd *lcd)
 		if (lcd->gpio_init)
 			lcd->gpio_init();
 
-		nxp_platform_disp_device_data(DISP_DEVICE_LCD, &vsync, NULL, NULL);
+#if defined(CONFIG_NXP_DISPLAY_LCD)
+		nxp_platform_disp_device_data(DISP_DEVICE_LCD,  &vsync, NULL, NULL);
+#endif
+#if defined(CONFIG_NXP_DISPLAY_LVDS)
+		nxp_platform_disp_device_data(DISP_DEVICE_LVDS, &vsync, NULL, NULL);
+#endif
 	}
 }
 #endif
@@ -1657,11 +1664,11 @@ void __init nxp_board_devices_register(void)
 	platform_device_register(&dfs_plat_device);
 #endif
 
-#if defined (CONFIG_NXP_DISPLAY_LCD)
+#if defined(CONFIG_NXP_DISPLAY)
 	nxp_platform_disp_init(lcd);
 #endif
 
-#if defined (CONFIG_FB_NXP)
+#if defined(CONFIG_FB_NXP)
 	printk("plat: add framebuffer\n");
 	nxp_platform_fb_data(lcd);
 	platform_add_devices(fb_devices, ARRAY_SIZE(fb_devices));
