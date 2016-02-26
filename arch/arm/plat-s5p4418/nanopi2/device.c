@@ -1726,7 +1726,7 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
-	if (board_is_nanopc() || board_is_smart4418() || board_is_hello()) {
+	if (board_with_es8316()) {
 		printk("plat: add device asoc-es8316\n");
 		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
 		platform_device_register(&es8316_dai);
