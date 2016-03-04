@@ -322,9 +322,9 @@ static int stmmac_ethtool_getsettings(struct net_device *dev,
 		return -EBUSY;
 	}
 	cmd->transceiver = XCVR_INTERNAL;
-	spin_lock_irq(&priv->lock);
+	//spin_lock_irq(&priv->lock);
 	rc = phy_ethtool_gset(phy, cmd);
-	spin_unlock_irq(&priv->lock);
+	//spin_unlock_irq(&priv->lock);
 	return rc;
 }
 
@@ -359,9 +359,9 @@ static int stmmac_ethtool_setsettings(struct net_device *dev,
 		return 0;
 	}
 
-	spin_lock(&priv->lock);
+	//spin_lock(&priv->lock);
 	rc = phy_ethtool_sset(phy, cmd);
-	spin_unlock(&priv->lock);
+	//spin_unlock(&priv->lock);
 
 	return rc;
 }
