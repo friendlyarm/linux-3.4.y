@@ -140,7 +140,7 @@ int sys_mdio_write(struct mii_bus *bus, int phyaddr, int phyreg, u16 phydata)
  * @bus: points to the mii_bus structure
  * Description: reset the MII bus
  */
-int stmmac_mdio_reset(struct mii_bus *bus)
+static int stmmac_mdio_reset(struct mii_bus *bus)
 {
 #if defined(CONFIG_NXPMAC_PLATFORM)
 	struct net_device *ndev = bus->priv;

@@ -65,7 +65,7 @@
 #define pr_debug	printk
 */
 
-//#define __TRACE__
+#define __TRACE__
 #ifdef __TRACE__
 #define __trace(args, ...)	\
 	do { \
@@ -152,7 +152,7 @@ static irqreturn_t stmmac_interrupt(int irq, void *dev_id);
 
 #ifdef CONFIG_NXPMAC_DEBUG_FS
 static int stmmac_init_fs(struct net_device *dev);
-static void stmmac_exit_fs(struct net_device *dev);
+static void stmmac_exit_fs(void);
 #endif
 
 #define STMMAC_COAL_TIMER(x) (jiffies + usecs_to_jiffies(x))
@@ -795,12 +795,12 @@ static void stmmac_adjust_link(struct net_device *dev)
 	if (new_state && netif_msg_link(priv))
 		phy_print_status(phydev);
 
+	spin_unlock_irqrestore(&priv->lock, flags);
+
 	/* At this stage, it could be needed to setup the EEE or adjust some
 	 * MAC related HW registers.
 	 */
 	priv->eee_enabled = stmmac_eee_init(priv);
-
-	spin_unlock_irqrestore(&priv->lock, flags);
 }
 
 /**
@@ -934,7 +934,6 @@ static int stmmac_init_phy(struct net_device *dev)
  *  add by jhkim
  *	stmmac_display_descriptors: display current descriptors
  */
-#ifdef CONFIG_NXPMAC_DEBUG_FS
 static void stmac_display_desc_status(struct stmmac_priv *priv)
 {
 	struct dma_extended_desc *ep = (struct dma_extended_desc *)priv->dma_erx;
@@ -964,7 +963,6 @@ static void stmac_display_desc_status(struct stmmac_priv *priv)
 	for (i = 0; rxsize/32 > i; i++)
 		printk("Rx bitmaps [%3d] 0x%08x (%d)\n", i, bitmap[i], sizeof(rxsize/32));
 }
-
 
 static void stmmac_display_descriptors(struct stmmac_priv *priv)
 {
@@ -996,7 +994,6 @@ static void stmmac_display_descriptors(struct stmmac_priv *priv)
 	stmac_display_desc_status(priv);
 	printk("----------------------------------------------------------\n");
 }
-#endif
 
 /**
  * stmmac_display_ring: display ring
@@ -1101,11 +1098,13 @@ static int stmmac_init_rx_buffers(struct stmmac_priv *priv, struct dma_desc *p,
 {
 	struct sk_buff *skb;
 
-	skb = __netdev_alloc_skb_ip_align(priv->dev, priv->dma_buf_sz, flags);
+	skb = __netdev_alloc_skb(priv->dev, priv->dma_buf_sz + NET_IP_ALIGN,
+				 GFP_KERNEL);
 	if (!skb) {
 		pr_err("%s: Rx init fails; skb is NULL\n", __func__);
 		return -ENOMEM;
 	}
+	skb_reserve(skb, NET_IP_ALIGN);
 	priv->rx_skbuff[i] = skb;
 	priv->rx_skbuff_dma[i] = dma_map_single(priv->device, skb->data,
 						priv->dma_buf_sz,
@@ -1138,7 +1137,6 @@ static void stmmac_free_rx_buffers(struct stmmac_priv *priv, int i)
 /**
  * init_dma_desc_rings - init the RX/TX descriptor rings
  * @dev: net device structure
- * @flags: gfp flag.
  * Description:  this function initializes the DMA RX/TX descriptors
  * and allocates the socket buffers. It suppors the chained and ring
  * modes.
@@ -1221,8 +1219,7 @@ static int init_dma_desc_rings(struct net_device *dev, gfp_t flags, int is_resum
 		else
 			p = priv->dma_tx + i;
 		p->des2 = 0;
-		priv->tx_skbuff_dma[i].buf = 0;
-		priv->tx_skbuff_dma[i].map_as_page = false;
+		priv->tx_skbuff_dma[i] = 0;
 		priv->tx_skbuff[i] = NULL;
 	}
 
@@ -1252,38 +1249,28 @@ static void dma_free_rx_skbufs(struct stmmac_priv *priv)
 
 static void dma_free_tx_skbufs(struct stmmac_priv *priv)
 {
-
 	int i;
 
 	for (i = 0; i < priv->dma_tx_size; i++) {
-		struct dma_desc *p;
-
-		if (priv->extend_desc)
-			p = &((priv->dma_etx + i)->basic);
-		else
-			p = priv->dma_tx + i;
-
-		if (priv->tx_skbuff_dma[i].buf) {
-			if (priv->tx_skbuff_dma[i].map_as_page)
-				dma_unmap_page(priv->device,
-					       priv->tx_skbuff_dma[i].buf,
-					       priv->hw->desc->get_tx_len(p),
-					       DMA_TO_DEVICE);
+		if (priv->tx_skbuff[i] != NULL) {
+			struct dma_desc *p;
+			if (priv->extend_desc)
+				p = &((priv->dma_etx + i)->basic);
 			else
+				p = priv->dma_tx + i;
+
+			if (priv->tx_skbuff_dma[i])
 				dma_unmap_single(priv->device,
-						 priv->tx_skbuff_dma[i].buf,
+						 priv->tx_skbuff_dma[i],
 						 priv->hw->desc->get_tx_len(p),
 						 DMA_TO_DEVICE);
-		}
-
-		if (priv->tx_skbuff[i] != NULL) {
 			dev_kfree_skb_any(priv->tx_skbuff[i]);
 			priv->tx_skbuff[i] = NULL;
-			priv->tx_skbuff_dma[i].buf = 0;
-			priv->tx_skbuff_dma[i].map_as_page = false;
+			priv->tx_skbuff_dma[i] = 0;
 		}
 	}
 }
+
 /**
  * alloc_dma_desc_resources - alloc TX/RX resources.
  * @priv: private structure
@@ -1320,41 +1307,41 @@ static int alloc_dma_desc_resources(struct stmmac_priv *priv)
 		goto err_tx_skbuff;
 
 	if (priv->extend_desc) {
-		priv->dma_erx = dma_alloc_coherent(priv->device, rxsize *
-						   sizeof(struct
-							  dma_extended_desc),
-						   &priv->dma_rx_phy,
-						   GFP_KERNEL);
+		priv->dma_erx = dma_zalloc_coherent(priv->device, rxsize *
+						    sizeof(struct
+							   dma_extended_desc),
+						    &priv->dma_rx_phy,
+						    GFP_KERNEL);
 		if (!priv->dma_erx)
 			goto err_dma;
 
-		priv->dma_etx = dma_alloc_coherent(priv->device, txsize *
-						   sizeof(struct
-							  dma_extended_desc),
-						   &priv->dma_tx_phy,
-						   GFP_KERNEL);
+		priv->dma_etx = dma_zalloc_coherent(priv->device, txsize *
+						    sizeof(struct
+							   dma_extended_desc),
+						    &priv->dma_tx_phy,
+						    GFP_KERNEL);
 		if (!priv->dma_etx) {
 			dma_free_coherent(priv->device, priv->dma_rx_size *
-					sizeof(struct dma_extended_desc),
-					priv->dma_erx, priv->dma_rx_phy);
+					  sizeof(struct dma_extended_desc),
+					  priv->dma_erx, priv->dma_rx_phy);
 			goto err_dma;
 		}
 	} else {
-		priv->dma_rx = dma_alloc_coherent(priv->device, rxsize *
-						  sizeof(struct dma_desc),
-						  &priv->dma_rx_phy,
-						  GFP_KERNEL);
+		priv->dma_rx = dma_zalloc_coherent(priv->device, rxsize *
+						   sizeof(struct dma_desc),
+						   &priv->dma_rx_phy,
+						   GFP_KERNEL);
 		if (!priv->dma_rx)
 			goto err_dma;
 
-		priv->dma_tx = dma_alloc_coherent(priv->device, txsize *
-						  sizeof(struct dma_desc),
-						  &priv->dma_tx_phy,
-						  GFP_KERNEL);
+		priv->dma_tx = dma_zalloc_coherent(priv->device, txsize *
+						   sizeof(struct dma_desc),
+						   &priv->dma_tx_phy,
+						   GFP_KERNEL);
 		if (!priv->dma_tx) {
 			dma_free_coherent(priv->device, priv->dma_rx_size *
-					sizeof(struct dma_desc),
-					priv->dma_rx, priv->dma_rx_phy);
+					  sizeof(struct dma_desc),
+					  priv->dma_rx, priv->dma_rx_phy);
 			goto err_dma;
 		}
 	}
@@ -1371,7 +1358,6 @@ err_rx_skbuff:
 	kfree(priv->rx_skbuff_dma);
 	return ret;
 }
-
 static void free_dma_desc_resources(struct stmmac_priv *priv)
 {
 	/* Release the DMA TX/RX socket buffers */
@@ -1484,19 +1470,12 @@ static void stmmac_tx_clean(struct stmmac_priv *priv)
 			pr_debug("%s: curr %d, dirty %d\n", __func__,
 				 priv->cur_tx, priv->dirty_tx);
 
-		if (likely(priv->tx_skbuff_dma[entry].buf)) {
-			if (priv->tx_skbuff_dma[entry].map_as_page)
-				dma_unmap_page(priv->device,
-					       priv->tx_skbuff_dma[entry].buf,
-					       priv->hw->desc->get_tx_len(p),
-					       DMA_TO_DEVICE);
-			else
-				dma_unmap_single(priv->device,
-						 priv->tx_skbuff_dma[entry].buf,
-						 priv->hw->desc->get_tx_len(p),
-						 DMA_TO_DEVICE);
-			priv->tx_skbuff_dma[entry].buf = 0;
-			priv->tx_skbuff_dma[entry].map_as_page = false;
+		if (likely(priv->tx_skbuff_dma[entry])) {
+			dma_unmap_single(priv->device,
+					 priv->tx_skbuff_dma[entry],
+					 priv->hw->desc->get_tx_len(p),
+					 DMA_TO_DEVICE);
+			priv->tx_skbuff_dma[entry] = 0;
 		}
 		priv->hw->mode->clean_desc3(priv, p);
 
@@ -1563,7 +1542,6 @@ static void stmmac_tx_err(struct stmmac_priv *priv)
 						     (i == txsize - 1));
 	priv->dirty_tx = 0;
 	priv->cur_tx = 0;
-	netdev_reset_queue(priv->dev);
 	priv->hw->dma->start_tx(priv->ioaddr);
 
 	priv->dev->stats.tx_errors++;
@@ -1850,81 +1828,65 @@ static void stmmac_init_tx_coalesce(struct stmmac_priv *priv)
 }
 
 #ifdef CONFIG_NXPMAC_MII_SYSFS
-#define MIIREG_NONE		99
-static unsigned int miireg = MIIREG_NONE;
-
-static ssize_t miireg_show(struct kobject *kobj,
-			struct kobj_attribute *attr, char *buf)
-{
-	if (miireg == MIIREG_NONE)
-		return sprintf(buf, "-\n");
-	else
-		return sprintf(buf, "0x%x\n", miireg);
-}
-
-static ssize_t miireg_store(struct kobject *kobj,
-			struct kobj_attribute *attr, const char *buf, size_t n)
-{
-	unsigned long val;
-
-	int rc = kstrtoul(buf, 0, &val);
-	if (rc < 0)
-		return rc;
-
-	miireg = (uint32_t)val;
-
-	return n;
-}
-
-static ssize_t miidata_show(struct kobject *kobj,
-			struct kobj_attribute *attr, char *buf)
-{
-	struct stmmac_priv *priv = container_of(kobj, struct stmmac_priv, kobj);
-	int data;
-
-	if (!priv->phydev)
-		return 0;
-
-	if (miireg == MIIREG_NONE)
-		return sprintf(buf, "-\n");
-
-	data = phy_read(priv->phydev, miireg);
-
-	return sprintf(buf, "0x%x\n", data);
-}
-
-static ssize_t miidata_store(struct kobject *kobj,
-			struct kobj_attribute *attr, const char *buf, size_t n)
-{
-	struct stmmac_priv *priv = container_of(kobj, struct stmmac_priv, kobj);
-	unsigned long val;
-	int rc = kstrtoul(buf, 0, &val);
-
-	if (rc < 0)
-		return rc;
-
-	if (!priv->phydev)
-		return 0;
-
-	if (miireg == MIIREG_NONE)
-		return 0;
-
-	pr_debug("  %s ... val: 0x%lx\n", __func__, val);
-
-	phy_write(priv->phydev, miireg, (u16)val);
-	return n;
-}
 
 #define MIIREG_ATTR_RW(type)	__ATTR(type, S_IRUGO | S_IWUSR, type##_show, type##_store)
 #define MIIREG_ATTR_RO(type)	__ATTR(type, S_IRUGO,           type##_show, type##_store)
 
-static struct kobj_attribute miireg_attr = MIIREG_ATTR_RW(miireg);
-static struct kobj_attribute miidata_attr = MIIREG_ATTR_RW(miidata);
+
+//echo "read 0x0" > phychip
+//echo "write 0x0 0x4100" > phychip
+
+static ssize_t phyreg_store(struct kobject *kobj,
+			struct kobj_attribute *attr, const char *buf, size_t n)
+{
+	struct stmmac_priv *priv = container_of(kobj, struct stmmac_priv, kobj);
+	unsigned int reg;
+	unsigned int data;
+
+	char cmd[10] = {0};
+	int is_write = 0;
+	int is_read = 0;
+
+
+	if (sscanf(buf, "%s %d", cmd, &reg) != 2) {
+		pr_err("wrong command.\n");
+		return 0;
+	}
+	
+	if (strncmp("write", cmd, 5) == 0)
+		is_write = 1;
+	else if (strncmp("read", cmd, 4) == 0)
+		is_read = 1;
+	else
+		return 0;
+	
+
+	if (!priv->phydev)
+		return 0;
+
+	if (is_read) {
+		data = phy_read(priv->phydev, (u16)reg);
+		pr_info("  read %d 0x%x\n", reg, data);
+	}
+
+	if (is_write) {
+		sscanf(buf, "%s %d %x", cmd, &reg, &data);
+		phy_write(priv->phydev, (u16)reg, (u16)data);
+		pr_info("  write %d 0x%x\n", reg, data);
+	}
+
+	return n;
+}
+
+//#define PHYREG_ATTR_RW(type)	__ATTR(type, S_IRUGO | S_IWUSR, type##_show, type##_store)
+//#define PHYREG_ATTR_RO(type)	__ATTR(type, S_IRUGO,           type##_show, NULL)
+#define PHYREG_ATTR_WO(type)	__ATTR(type,           S_IWUSR, NULL, type##_store)
+
+static struct kobj_attribute phyreg_attr = PHYREG_ATTR_WO(phyreg);
 
 /* sys attribte group */
 static struct attribute *attrs[] = {
-	&miireg_attr.attr,
-	&miidata_attr.attr,
+	&phyreg_attr.attr,
 	NULL,
 };
 
@@ -2045,7 +2007,7 @@ static int nxpmac_hw_setup(struct net_device *dev, bool init_ptp, int init_fs)
 		priv->plat->bus_setup(priv->ioaddr);
 
 	/* Initialize the MAC Core */
-	priv->hw->mac->core_init(priv->ioaddr, dev->mtu);
+	priv->hw->mac->core_init(priv->ioaddr);
 
 	ret = priv->hw->mac->rx_ipc(priv->ioaddr);
 	if (!ret) {
@@ -2113,11 +2075,6 @@ static int stmmac_open(struct net_device *dev)
 	struct stmmac_priv *priv = netdev_priv(dev);
 	int ret;
 
-#if 0	// remark by kook
-	clk_prepare_enable(priv->stmmac_clk);
-#endif
-	__trace(" +++ opened\n");
-
 	stmmac_check_ether_addr(priv);
 
 	if (priv->pcs != STMMAC_PCS_RGMII && priv->pcs != STMMAC_PCS_TBI &&
@@ -2126,7 +2083,7 @@ static int stmmac_open(struct net_device *dev)
 		if (ret) {
 			pr_err("%s: Cannot attach to PHY (error: %d)\n",
 			       __func__, ret);
-			return ret;
+			goto phy_error;
 		}
 	}
 
@@ -2151,7 +2108,7 @@ static int stmmac_open(struct net_device *dev)
 	ret = init_dma_desc_rings(dev, GFP_KERNEL, 0);
 	if (ret < 0) {
 		pr_err("%s: DMA descriptors initialization failed\n", __func__);
-		goto init_error;
+		goto dma_desc_error;
 	}
 
 	ret = nxpmac_hw_setup(dev, true, 1);
@@ -2196,7 +2153,6 @@ static int stmmac_open(struct net_device *dev)
 		}
 	}
 
-	priv->eee_enabled = stmmac_eee_init(priv);
 
 #if STMMAC_RUN_RX_TIMER
 	stmmac_init_rx_unavail(priv);
@@ -2218,10 +2174,12 @@ init_error:
 dma_desc_error:
 	if (priv->phydev)
 		phy_disconnect(priv->phydev);
-#if 0	// remark by kook
-	clk_disable_unprepare(priv->stmmac_clk);
-#endif
 
+	kfree(priv->dma_rx_bitmap);
+	kfree(priv->dma_tx_bitmap);
+	priv->dma_rx_bitmap = NULL;
+	priv->dma_tx_bitmap = NULL;
+phy_error:
 	return ret;
 }
 
@@ -2280,16 +2238,9 @@ static int stmmac_release(struct net_device *dev)
 	netif_carrier_off(dev);
 
 #ifdef CONFIG_NXPMAC_DEBUG_FS
-	stmmac_exit_fs(dev);
+	stmmac_exit_fs();
 #endif
-
-#if 0	// remark by kook
-	clk_disable_unprepare(priv->stmmac_clk);
-#endif
-
 	stmmac_release_ptp(priv);
-
-	__trace(" --- opened\n");
 
 	return 0;
 }
@@ -2340,34 +2291,35 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	first = desc;
 	first_entry = entry;
 
+	priv->tx_skbuff[entry] = skb;
+
 	/* To program the descriptors according to the size of the frame */
 	if (priv->mode == STMMAC_RING_MODE) {
 		is_jumbo = priv->hw->mode->is_jumbo_frm(skb->len,
 							priv->plat->enh_desc);
+		if (unlikely(is_jumbo))
+			entry = priv->hw->mode->jumbo_frm(priv, skb,
+							  csum_insertion);
 	} else {
 		is_jumbo = priv->hw->mode->is_jumbo_frm(skb->len,
 							 priv->plat->enh_desc);
+		if (unlikely(is_jumbo))
+			entry = priv->hw->mode->jumbo_frm(priv, skb,
+							   csum_insertion);
 	}
 	if (likely(!is_jumbo)) {
 		desc->des2 = dma_map_single(priv->device, skb->data,
 					    nopaged_len, DMA_TO_DEVICE);
-		if (dma_mapping_error(priv->device, desc->des2))
-			goto dma_map_err;
-		priv->tx_skbuff_dma[entry].buf = desc->des2;
+		priv->tx_skbuff_dma[entry] = desc->des2;
 		priv->hw->desc->prepare_tx_desc(desc, 1, nopaged_len,
 						csum_insertion, priv->mode);
-	} else {
+	} else
 		desc = first;
-		entry = priv->hw->mode->jumbo_frm(priv, skb, csum_insertion);
-		if (unlikely(entry < 0))
-			goto dma_map_err;
-	}
 
 	for (i = 0; i < nfrags; i++) {
 		const skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
 		int len = skb_frag_size(frag);
 
-		priv->tx_skbuff[entry] = NULL;
 		entry = (++priv->cur_tx) % txsize;
 		if (priv->extend_desc)
 			desc = (struct dma_desc *)(priv->dma_etx + entry);
@@ -2376,11 +2328,8 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 
 		desc->des2 = skb_frag_dma_map(priv->device, frag, 0, len,
 					      DMA_TO_DEVICE);
-		if (dma_mapping_error(priv->device, desc->des2))
-			goto dma_map_err; /* should reuse desc w/o issues */
-
-		priv->tx_skbuff_dma[entry].buf = desc->des2;
-		priv->tx_skbuff_dma[entry].map_as_page = true;
+		priv->tx_skbuff_dma[entry] = desc->des2;
+		priv->tx_skbuff[entry] = NULL;
 		priv->hw->desc->prepare_tx_desc(desc, 0, len, csum_insertion,
 						priv->mode);
 		wmb();
@@ -2390,8 +2339,6 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 			(unsigned long)(priv->dma_tx_phy+(entry*priv->dma_desc_size)),
 			priv->dma_desc_size);
 	}
-
-	priv->tx_skbuff[entry] = skb;
 
 	/* Finalize the latest segment. */
 	priv->hw->desc->close_tx_desc(desc);
@@ -2455,13 +2402,6 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	spin_unlock(&priv->tx_lock);
 
 	return NETDEV_TX_OK;
-
-dma_map_err:
-	spin_unlock(&priv->tx_lock);
-	dev_err(priv->device, "Tx dma map failed\n");
-	dev_kfree_skb(skb);
-	priv->dev->stats.tx_dropped++;
-	return NETDEV_TX_OK;
 }
 
 /**
@@ -2496,12 +2436,7 @@ static inline void stmmac_rx_refill(struct stmmac_priv *priv)
 			priv->rx_skbuff_dma[entry] =
 			    dma_map_single(priv->device, skb->data, bfsize,
 					   DMA_FROM_DEVICE);
-			if (dma_mapping_error(priv->device,
-					      priv->rx_skbuff_dma[entry])) {
-				dev_err(priv->device, "Rx dma map failed\n");
-				dev_kfree_skb(skb);
-				break;
-			}
+
 			p->des2 = priv->rx_skbuff_dma[entry];
 
 			priv->hw->mode->refill_desc3(priv, p);
@@ -2888,6 +2823,8 @@ static int stmmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 
 #ifdef CONFIG_NXPMAC_DEBUG_FS
 static struct dentry *stmmac_fs_dir;
+static struct dentry *stmmac_rings_status;
+static struct dentry *stmmac_dma_cap;
 
 static void sysfs_display_ring(void *head, void __iomem *phy, int size,
 					int extend_desc, struct seq_file *seq)
@@ -3025,59 +2962,48 @@ static const struct file_operations stmmac_dma_cap_fops = {
 
 static int stmmac_init_fs(struct net_device *dev)
 {
-	struct stmmac_priv *priv = netdev_priv(dev);
+	/* Create debugfs entries */
+	stmmac_fs_dir = debugfs_create_dir(NXPMAC_RESOURCE_NAME, NULL);
 
+	if (!stmmac_fs_dir || IS_ERR(stmmac_fs_dir)) {
+		pr_err("ERROR %s, debugfs create directory failed\n",
+		       NXPMAC_RESOURCE_NAME);
 
-	if (priv->dbgfs_initialized)
-		return 0;
-
-	/* Create per netdev entries */
-	priv->dbgfs_dir = debugfs_create_dir(dev->name, stmmac_fs_dir);
-
-	if (!priv->dbgfs_dir || IS_ERR(priv->dbgfs_dir)) {
-		pr_err("ERROR %s/%s, debugfs create directory failed\n",
-		       NXPMAC_RESOURCE_NAME, dev->name);
-
-		priv->dbgfs_initialized = 0;
 		return -ENOMEM;
 	}
 
 	/* Entry to report DMA RX/TX rings */
-	priv->dbgfs_rings_status =
-		debugfs_create_file("descriptors_status", S_IRUGO,
-				    priv->dbgfs_dir, dev,
-				    &stmmac_rings_status_fops);
+	stmmac_rings_status = debugfs_create_file("descriptors_status",
+						  S_IRUGO, stmmac_fs_dir, dev,
+						  &stmmac_rings_status_fops);
 
-	if (!priv->dbgfs_rings_status || IS_ERR(priv->dbgfs_rings_status)) {
+	if (!stmmac_rings_status || IS_ERR(stmmac_rings_status)) {
 		pr_info("ERROR creating stmmac ring debugfs file\n");
-		debugfs_remove_recursive(priv->dbgfs_dir);
+		debugfs_remove(stmmac_fs_dir);
 
-		priv->dbgfs_initialized = 0;
 		return -ENOMEM;
 	}
 
 	/* Entry to report the DMA HW features */
-	priv->dbgfs_dma_cap = debugfs_create_file("dma_cap", S_IRUGO,
-					    priv->dbgfs_dir,
-					    dev, &stmmac_dma_cap_fops);
+	stmmac_dma_cap = debugfs_create_file("dma_cap", S_IRUGO, stmmac_fs_dir,
+					     dev, &stmmac_dma_cap_fops);
 
-	if (!priv->dbgfs_dma_cap || IS_ERR(priv->dbgfs_dma_cap)) {
+	if (!stmmac_dma_cap || IS_ERR(stmmac_dma_cap)) {
 		pr_info("ERROR creating stmmac MMC debugfs file\n");
-		debugfs_remove_recursive(priv->dbgfs_dir);
+		debugfs_remove(stmmac_rings_status);
+		debugfs_remove(stmmac_fs_dir);
 
-		priv->dbgfs_initialized = 0;
 		return -ENOMEM;
 	}
 
-	priv->dbgfs_initialized = 1;
 	return 0;
 }
 
-static void stmmac_exit_fs(struct net_device *dev)
+static void stmmac_exit_fs(void)
 {
-	struct stmmac_priv *priv = netdev_priv(dev);
-
-	debugfs_remove_recursive(priv->dbgfs_dir);
+	debugfs_remove(stmmac_rings_status);
+	debugfs_remove(stmmac_dma_cap);
+	debugfs_remove(stmmac_fs_dir);
 }
 #endif /* CONFIG_NXPMAC_DEBUG_FS */
 
@@ -3108,6 +3034,7 @@ static const struct net_device_ops stmmac_netdev_ops = {
  */
 static int stmmac_hw_init(struct stmmac_priv *priv)
 {
+	int ret;
 	struct mac_device_info *mac;
 
 	/* Identify the MAC HW device */
@@ -3161,6 +3088,12 @@ static int stmmac_hw_init(struct stmmac_priv *priv)
 
 	/* To use alternate (extended) or normal descriptor structures */
 	stmmac_selec_desc_mode(priv);
+
+	ret = priv->hw->mac->rx_ipc(priv->ioaddr);
+	if (!ret) {
+		pr_warn(" RX IPC Checksum Offload not configured.\n");
+		priv->plat->rx_coe = STMMAC_RX_COE_NONE;
+	}
 
 	if (priv->plat->rx_coe)
 		pr_info(" RX Checksum Offload Engine supported (type %d)\n",
@@ -3267,29 +3200,7 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 		goto error_netdev_register;
 	}
 
-#if 0	// remark by kook
-//	priv->stmmac_clk = clk_get(priv->device, NXPMAC_RESOURCE_NAME);
-	priv->stmmac_clk = clk_get(priv->device, DEV_NAME_GMAC);
-	if (IS_ERR(priv->stmmac_clk)) {
-		pr_warn("%s: warning: cannot get CSR clock\n", __func__);
-		goto error_clk_get;
-	}
-
-	/* If a specific clk_csr value is passed from the platform
-	 * this means that the CSR Clock Range selection cannot be
-	 * changed at run-time and it is fixed. Viceversa the driver'll try to
-	 * set the MDC clock dynamically according to the csr actual
-	 * clock input.
-	 */
-	if (!priv->plat->clk_csr)
-		stmmac_clk_csr_set(priv);
-	else
-		priv->clk_csr = priv->plat->clk_csr;
-#else
-
 	priv->clk_csr = priv->plat->clk_csr;
-#endif
-
 	stmmac_check_pcs_mode(priv);
 
 	if (priv->pcs != STMMAC_PCS_RGMII && priv->pcs != STMMAC_PCS_TBI &&
@@ -3310,10 +3221,6 @@ struct stmmac_priv *stmmac_dvr_probe(struct device *device,
 	return priv;
 
 error_mdio_register:
-#if 0	//remark by kook
-	clk_put(priv->stmmac_clk);
-error_clk_get:
-#endif
 	unregister_netdev(ndev);
 error_netdev_register:
 	netif_napi_del(&priv->napi);
@@ -3362,6 +3269,8 @@ int stmmac_suspend(struct net_device *ndev)
 	if (!ndev || !netif_running(ndev))
 		return 0;
 
+	__trace("nxpmac suspend...\n");
+
 	if (priv->phydev)
 		phy_stop(priv->phydev);
 
@@ -3381,21 +3290,17 @@ int stmmac_suspend(struct net_device *ndev)
 	/* Enable Power down mode by programming the PMT regs */
 	if (device_may_wakeup(priv->device))
 		priv->hw->mac->pmt(priv->ioaddr, priv->wolopts);
-	else {
+	else
 		stmmac_set_mac(priv->ioaddr, false);
-#if 0	// remark by kook
-		/* Disable clock in case of PWM is off */
-		clk_disable_unprepare(priv->stmmac_clk);
-#endif
-	}
+
 	spin_unlock_irqrestore(&priv->lock, flags);
 
 	priv->oldlink = 0;
 	priv->speed = 0;
 	priv->oldduplex = -1;
+
 	return 0;
 }
-EXPORT_SYMBOL_GPL(stmmac_suspend);
 
 int stmmac_resume(struct net_device *ndev)
 {
@@ -3405,7 +3310,7 @@ int stmmac_resume(struct net_device *ndev)
 	if (!netif_running(ndev))
 		return 0;
 
-	__trace("stmmac resume...\n");
+	__trace("nxpmac resume...\n");
 
 	nxp_plat_initialize();
 
@@ -3417,16 +3322,8 @@ int stmmac_resume(struct net_device *ndev)
 	 * this bit because it can generate problems while resuming
 	 * from another devices (e.g. serial console).
 	 */
-	if (device_may_wakeup(priv->device)) {
+	if (device_may_wakeup(priv->device))
 		priv->hw->mac->pmt(priv->ioaddr, 0);
-	} else {
-#if 0	// remark by kook
-		/* enable the clk prevously disabled */
-		clk_prepare_enable(priv->stmmac_clk);
-#endif
-		//if (priv->mii)
-		//	stmmac_mdio_reset(priv->mii);
-	}
 
 	netif_device_attach(ndev);
 
@@ -3445,7 +3342,6 @@ int stmmac_resume(struct net_device *ndev)
 
 	return 0;
 }
-EXPORT_SYMBOL_GPL(stmmac_resume);
 
 int stmmac_freeze(struct net_device *ndev)
 {
@@ -3471,28 +3367,12 @@ static int __init stmmac_init(void)
 {
 	int ret;
 
-#ifdef CONFIG_NXPMAC_DEBUG_FS
-	/* Create debugfs main directory if it doesn't exist yet */
-	if (!stmmac_fs_dir) {
-		stmmac_fs_dir = debugfs_create_dir(NXPMAC_RESOURCE_NAME, NULL);
-
-		if (!stmmac_fs_dir || IS_ERR(stmmac_fs_dir)) {
-			pr_err("ERROR %s, debugfs create directory failed\n",
-			       NXPMAC_RESOURCE_NAME);
-
-			ret = -ENOMEM;
-			goto err;
-		}
-	}
-#endif
-
 	ret = stmmac_register_platform();
 	if (ret)
 		goto err;
 	ret = stmmac_register_pci();
 	if (ret)
 		goto err_pci;
-
 	return 0;
 err_pci:
 	stmmac_unregister_platform();
@@ -3505,9 +3385,6 @@ static void __exit stmmac_exit(void)
 {
 	stmmac_unregister_platform();
 	stmmac_unregister_pci();
-#ifdef CONFIG_NXPMAC_DEBUG_FS
-	debugfs_remove_recursive(stmmac_fs_dir);
-#endif
 }
 
 module_init(stmmac_init);

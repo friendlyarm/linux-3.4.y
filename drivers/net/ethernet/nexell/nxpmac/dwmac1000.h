@@ -131,7 +131,6 @@ enum power_event {
 #define GMAC_CONTROL_WD	0x00800000	/* Disable Watchdog on receive */
 
 /* GMAC Configuration defines */
-#define GMAC_CONTROL_2K 0x08000000	/* IEEE 802.3as 2K packets */
 #define GMAC_CONTROL_TC	0x01000000	/* Transmit Conf. in RGMII/SGMII */
 #define GMAC_CONTROL_WD	0x00800000	/* Disable Watchdog on receive */
 #define GMAC_CONTROL_JD	0x00400000	/* Jabber disable */
@@ -156,13 +155,8 @@ enum inter_frame_gap {
 #define GMAC_CONTROL_TE		0x00000008	/* Transmitter Enable */
 #define GMAC_CONTROL_RE		0x00000004	/* Receiver Enable */
 
-#if 0
 #define GMAC_CORE_INIT (GMAC_CONTROL_JD | GMAC_CONTROL_PS | GMAC_CONTROL_ACS | \
 			GMAC_CONTROL_JE | GMAC_CONTROL_BE)
-#else
-#define GMAC_CORE_INIT (GMAC_CONTROL_JD | GMAC_CONTROL_PS | GMAC_CONTROL_ACS | \
-			GMAC_CONTROL_BE | GMAC_CONTROL_DCRS)
-#endif
 
 /* GMAC Frame Filter defines */
 #define GMAC_FRAME_FILTER_PR	0x00000001	/* Promiscuous Mode */

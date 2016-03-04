@@ -372,7 +372,7 @@ struct stmmac_dma_ops {
 
 struct stmmac_ops {
 	/* MAC core initialization */
-	void (*core_init)(void __iomem *ioaddr, int mtu);
+	void (*core_init) (void __iomem *ioaddr);
 	/* Enable and verify that the IPC module is supported */
 	int (*rx_ipc) (void __iomem *ioaddr);
 	/* Dump MAC registers */
@@ -441,8 +441,6 @@ struct mac_device_info {
 	struct mii_regs mii;	/* MII register Addresses */
 	struct mac_link link;
 	unsigned int synopsys_uid;
-	void __iomem *pcsr;     /* vpointer to device CSRs */
-	unsigned int rx_csum;
 };
 
 struct mac_device_info *dwmac1000_setup(void __iomem *ioaddr);

@@ -160,11 +160,13 @@ static int stmmac_pltfr_probe(struct platform_device *pdev)
 	}
 
 	/* Custom initialisation (if needed)*/
+	#if 0
 	if (plat_dat->init) {
 		ret = plat_dat->init(pdev);
 		if (unlikely(ret))
 			goto out_unmap;
 	}
+	#endif
 
 	priv = stmmac_dvr_probe(&(pdev->dev), plat_dat, addr);
 	if (!priv) {
@@ -227,8 +229,8 @@ static int stmmac_pltfr_remove(struct platform_device *pdev)
 	struct stmmac_priv *priv = netdev_priv(ndev);
 	int ret = stmmac_dvr_remove(ndev);
 
-	if (priv->plat->exit)
-		priv->plat->exit(pdev);
+	//if (priv->plat->exit)
+	//	priv->plat->exit(pdev);
 
 	return ret;
 }
@@ -258,8 +260,8 @@ static int stmmac_pltfr_resume(struct device *dev)
 
 	//lldebugout(" +++++ plat_resume enter\n");
 
-	if (priv->plat->init)
-		priv->plat->init(pdev);
+	//if (priv->plat->init)
+	//	priv->plat->init(pdev);
 
 	return stmmac_resume(ndev);
 }
@@ -286,8 +288,7 @@ struct platform_driver stmmac_pltfr_driver = {
 	.driver = {
 		   .name = NXPMAC_RESOURCE_NAME,
 		   .owner = THIS_MODULE,
-#if CFG_ETHER_LOOPBACK_MODE == 1
-#else
+#if !defined(CFG_ETHER_LOOPBACK_MODE) || CFG_ETHER_LOOPBACK_MODE == 0
 		   .pm = &stmmac_pltfr_pm_ops,
 #endif
 		   .of_match_table = of_match_ptr(stmmac_dt_ids),

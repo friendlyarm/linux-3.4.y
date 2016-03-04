@@ -16,10 +16,6 @@
 #include <linux/phy.h>
 #include <linux/module.h>
 
-#include <mach/platform.h>
-#include <mach/devices.h>
-#include <mach/soc.h>
-
 #define RTL821x_PHYSR		0x11
 #define RTL821x_PHYSR_DUPLEX	0x2000
 #define RTL821x_PHYSR_SPEED	0xc000
@@ -36,6 +32,8 @@
 #define RTL821x_INSR		0x13
 
 #define RTL8211E_INER_LINK_STATUS	0x400
+
+#define RTL8211E_PGSR		0x1f
 
 #define CTRL1000_PREFER_MASTER		(1 << 10)
 #define CTRL1000_CONFIG_MASTER		(1 << 11)
@@ -62,6 +60,11 @@ static int rtl821x_ack_interrupt(struct phy_device *phydev)
 	int err;
 
 	err = phy_read(phydev, RTL821x_INSR);
+
+	if (err & 0x300) {								/* False Carrier or Symbol Error */
+		phy_write(phydev, RTL8211E_PGSR, 0x0000);	/* phy reset */
+		phy_write(phydev, 0, 0x8000);
+	}
 
 	return (err < 0) ? err : 0;
 }
@@ -106,7 +109,7 @@ static int rtl8211e_config_intr(struct phy_device *phydev)
 
 	if (phydev->interrupts == PHY_INTERRUPT_ENABLED)
 		err = phy_write(phydev, RTL821x_INER,
-				RTL8211E_INER_LINK_STATUS);
+				RTL8211E_INER_LINK_STATUS | 0x300);
 	else
 		err = phy_write(phydev, RTL821x_INER, 0);
 
@@ -158,8 +161,7 @@ static struct phy_driver rtl8211e_driver = {
 	.read_status	= genphy_read_status,
 	.ack_interrupt	= rtl821x_ack_interrupt,
 	.config_intr	= rtl8211e_config_intr,
-#ifdef CFG_ETHER_LOOPBACK_MODE
-#else
+#if !defined(CFG_ETHER_LOOPBACK_MODE) || CFG_ETHER_LOOPBACK_MODE == 0
 	.suspend	= genphy_suspend,
 	.resume		= genphy_resume,
 #endif

@@ -657,7 +657,6 @@ int phy_start_interrupts(struct phy_device *phydev)
 
 	atomic_set(&phydev->irq_disable, 0);
 	if (request_irq(phydev->irq, phy_interrupt,
-				//IRQF_TRIGGER_LOW | IRQF_SHARED,
 				IRQF_SHARED,
 				"phy_interrupt",
 				phydev) < 0) {
@@ -869,7 +868,7 @@ void phy_state_machine(struct work_struct *work)
 
 			break;
 		case PHY_AN:
-#ifdef CFG_ETHER_LOOPBACK_MODE
+#if defined(CFG_ETHER_LOOPBACK_MODE) && CFG_ETHER_LOOPBACK_MODE >= 1
 			nxpmac_set_phy_loopback(phydev, CFG_ETHER_LOOPBACK_MODE);
 #endif
 			err = phy_read_status(phydev);
@@ -897,7 +896,7 @@ void phy_state_machine(struct work_struct *work)
 				phydev->state = PHY_RUNNING;
 				netif_carrier_on(phydev->attached_dev);
 				phydev->adjust_link(phydev->attached_dev);
-#ifdef CFG_ETHER_LOOPBACK_MODE
+#if defined(CFG_ETHER_LOOPBACK_MODE) && CFG_ETHER_LOOPBACK_MODE >= 1
 				return ;
 #endif
 

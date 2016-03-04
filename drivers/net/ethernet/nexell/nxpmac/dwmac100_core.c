@@ -32,7 +32,7 @@
 #include <asm/io.h>
 #include "dwmac100.h"
 
-static void dwmac100_core_init(void __iomem *ioaddr, int mtu)
+static void dwmac100_core_init(void __iomem *ioaddr)
 {
 	u32 value = readl(ioaddr + MAC_CONTROL);
 

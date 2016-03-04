@@ -395,8 +395,7 @@ static struct dev_pm_ops mdio_bus_pm_ops = {
 struct bus_type mdio_bus_type = {
 	.name		= "mdio_bus",
 	.match		= mdio_bus_match,
-#ifdef CFG_ETHER_LOOPBACK_MODE
-#else
+#if !defined(CFG_ETHER_LOOPBACK_MODE) || CFG_ETHER_LOOPBACK_MODE == 0
 	.pm		= MDIO_BUS_PM_OPS,
 #endif
 };
