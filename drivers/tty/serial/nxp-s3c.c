@@ -1241,8 +1241,11 @@ static irqreturn_t s3c24xx_serial_handle_irq(int irq, void *id)
 	if (pend & S3C64XX_UINTM_TXD_MSK) {
 		ret = s3c24xx_serial_tx_chars(irq, id);
 		if (s3c24xx_dma_rx_running(uport)){
-	}
+		}
 		wr_regl(port, S3C64XX_UINTP, S3C64XX_UINTM_TXD_MSK);
+	}
+	if (pend & S3C64XX_UINTM_ERR_MSK) {
+		wr_regl(port, S3C64XX_UINTP, S3C64XX_UINTM_ERR_MSK);
 	}
 	spin_unlock_irqrestore(&port->lock, flags);
 	return ret;
