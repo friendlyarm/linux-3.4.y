@@ -881,10 +881,10 @@ static void *nxp_cpufreq_make_table(struct platform_device *pdev,
 	/* make frequency table with platform data */
 	if (asv_size > 0) {
 		for (n = 0, id = 0; tb_size > id && asv_size > n; n++) {
-			if (plat_tbs[id][1] > 0)
+			if (plat_tbs && plat_tbs[id][1] > 0)
 				plat_n_voltage = plat_tbs[id][1];
 
-			if (plat_tbs && plat_n_voltage) {
+			if (plat_n_voltage) {
 				dvfs_tables[id][0] = plat_tbs[id][0];	/* frequency */
 				dvfs_tables[id][1] = plat_n_voltage;	/* voltage */
 
