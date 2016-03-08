@@ -71,11 +71,10 @@ static int axp_set_voltage(struct regulator_dev *rdev,
 		ret = axp_read(axp_dev, info->vol_reg, &reg_val);
 		if((info->vout_reg_cache != reg_val) || ret)
 			printk(KERN_ERR "## \e[31m%s() Data is different!\e[0m set:0x%02x, read:0x%02x, ret:%d \n", __func__, val, reg_val, ret);
-		}
+	}
 #endif
 	return ret;
 }
-
 
 static int axp_get_voltage(struct regulator_dev *rdev)
 {
@@ -92,7 +91,6 @@ static int axp_get_voltage(struct regulator_dev *rdev)
 	val = (val & mask) >> info->vol_shift;
 
 	return info->min_uV + info->step_uV * val;
-	
 }
 
 static int axp_set_voltage_time_sel(struct regulator_dev *rdev,
@@ -120,6 +118,7 @@ static int axp_set_voltage_sel(struct regulator_dev *rdev,
 
 	return axp_set_voltage(rdev, uV, uV, NULL);
 }
+
 static int axp_get_voltage_sel(struct regulator_dev *rdev)
 {
 	struct axp_regulator_info *info = rdev_get_drvdata(rdev);
@@ -198,7 +197,6 @@ static struct regulator_ops axp22_dcdc_ops = {
 	.set_suspend_disable	= axp_disable,
 	.set_suspend_voltage	= axp_set_suspend_voltage,
 };
-
 
 static struct regulator_ops axp22_ops = {
 	.set_voltage	= axp_set_voltage,

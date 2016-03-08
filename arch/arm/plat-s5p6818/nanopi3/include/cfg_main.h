@@ -146,6 +146,11 @@
 #define CFG_PWM3_CLK_SRC						1		// 0:pclk 1:tclk
 
 /*------------------------------------------------------------------------------
+ *  PPM
+ */
+#define CFG_PPM_CLK								4000000
+
+/*------------------------------------------------------------------------------
  * 	HDMI
  */
 #define CFG_HDMI_EDID_I2C						1
@@ -263,7 +268,7 @@
 
 /* PMIC Common */
 #define CFG_GPIO_PMIC_INTR						(PAD_GPIO_ALV + 4)	/* PMIC Interrupt */
-//#define CONFIG_ENABLE_INIT_VOLTAGE					/* Enalbe init voltage for ARM, CORE */
+#define CONFIG_ENABLE_INIT_VOLTAGE					/* Enalbe init voltage for ARM, CORE */
 
 /*------------------------------------------------------------------------------
  * 	Suspend mode
