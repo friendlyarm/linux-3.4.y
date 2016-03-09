@@ -675,7 +675,7 @@ struct nxp_snd_dai_plat_data i2s_dai_data = {
 	.pcm_format = SNDRV_PCM_FMTBIT_S16_LE,
 #if 1
 	.hp_jack 		= {
-		.support    	= 1,
+		.support    	= 0,
 		.detect_io		= PAD_GPIO_B + 27,
 		.detect_level	= 1,
 	},
@@ -1728,6 +1728,8 @@ void __init nxp_board_devices_register(void)
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
 	if (board_with_es8316()) {
 		printk("plat: add device asoc-es8316\n");
+		if (board_is_nanopc() || board_is_smart4418())
+			i2s_dai_data.hp_jack.support = 1;
 		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
 		platform_device_register(&es8316_dai);
 	}
