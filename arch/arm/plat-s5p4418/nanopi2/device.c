@@ -1676,7 +1676,7 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_MMC_DW)
 	printk("plat: boot from mmc.%d\n", bootdev);
-	if (board_is_fire()) {
+	if (board_is_fire() || board_is_hello()) {
 		_dwmci0_add_device();
 	} else if (bootdev == 2) {
 		_dwmci2_add_device();
