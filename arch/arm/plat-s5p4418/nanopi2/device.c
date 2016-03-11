@@ -156,6 +156,44 @@ static struct platform_device dfs_plat_device = {
 };
 #endif
 
+#if defined(CONFIG_SENSORS_NXP_ADC_TEMP)
+struct nxp_adc_tmp_trigger adc_tmp_event[] = {
+	{
+		.temp	= 50,
+		.freq	= 1200000,
+		.period	= 1000,
+	} , {
+		.temp	= 55,
+		.freq	= 1000000,
+		.period	= 1000,
+	} , {
+		.temp	= 60,
+		.freq	= 800000,
+		.period	= 1000,
+	} , {
+		.temp	= 65,
+		.freq	= 400000,	/* freq = 0: Set critical temp. Power off! */
+		.period	= 1000,		/* Ms */
+	},
+};
+
+struct nxp_adc_tmp_platdata adc_tmp_plat_data ={
+	.channel	= 2,
+	.tmp_offset	= 0,
+	.duration	= 1000,
+	.step_up 	= 1,
+	.event 		= adc_tmp_event,
+	.eventsize = ARRAY_SIZE(adc_tmp_event),
+};
+
+static struct platform_device adc_temp_plat_device = {
+	.name		= "nxp-adc-tmp",
+	.dev		= {
+		.platform_data	= &adc_tmp_plat_data,
+	}
+};
+#endif /* CONFIG_SENSORS_NXP_ADC_TEMP */
+
 /*------------------------------------------------------------------------------
  * Network MAC address
  */
@@ -1655,6 +1693,9 @@ void __init nxp_board_devices_register(void)
 		board_fixup_dwmci2();
 #endif
 	} else {
+#if defined(CONFIG_SENSORS_NXP_ADC_TEMP)
+		adc_tmp_plat_data.priv = 1;
+#endif
 		/* board without eMMC */
 		bootdev = 0;
 	}
@@ -1662,6 +1703,11 @@ void __init nxp_board_devices_register(void)
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
 	printk("plat: add dynamic frequency (pll.%d)\n", dfs_plat_data.pll_dev);
 	platform_device_register(&dfs_plat_device);
+#endif
+
+#if defined(CONFIG_SENSORS_NXP_ADC_TEMP)
+	printk("plat: add device adc temp\n");
+	platform_device_register(&adc_temp_plat_device);
 #endif
 
 #if defined(CONFIG_NXP_DISPLAY)

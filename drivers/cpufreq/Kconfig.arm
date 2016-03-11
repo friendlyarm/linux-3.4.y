@@ -84,6 +84,7 @@ config ARM_NXP_CPUFREQ
 	help
 	  This adds the CPUFreq driver for SLsiAP
 	  SoC.
+
 config ARM_NXP_CPUFREQ_DEBUG
 	bool "Dynamic Frequency scaling debug message"
 	depends on ARM_NXP_CPUFREQ
@@ -91,11 +92,6 @@ config ARM_NXP_CPUFREQ_DEBUG
 
 config ARM_NXP_CPUFREQ_VOLTAGE_DEBUG
 	bool "Dynamic Voltage scaling debug message"
-	depends on ARM_NXP_CPUFREQ
-	default n
-
-config ARM_NXP_CPUFREQ_BY_RESOURCE
-	bool "Dynamic Voltage scaling by cpu resource & board temperature"
 	depends on ARM_NXP_CPUFREQ
 	default n
 
