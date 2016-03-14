@@ -41,6 +41,15 @@
 
 #define DEV_NAME_CPUFREQ	"nxp-cpufreq"
 
+#ifdef CONFIG_SMP
+struct lpj_info {
+	unsigned long	ref;
+	unsigned int	freq;
+};
+
+static struct lpj_info global_lpj_ref;
+#endif
+
 /*
  * DVFS info
  */
@@ -292,6 +301,15 @@ static unsigned long nxp_cpufreq_change_frequency(struct cpufreq_dvfs_info *dvfs
 		dvfs->time_stamp[id].start = ms;
 		dvfs->pre_freq_point = id;
 	}
+
+#ifdef CONFIG_SMP
+	if (!global_lpj_ref.freq) {
+		global_lpj_ref.ref = loops_per_jiffy;
+		global_lpj_ref.freq = freqs->old;
+	}
+	loops_per_jiffy = cpufreq_scale(global_lpj_ref.ref, global_lpj_ref.freq,
+			freqs->new);
+#endif
 
 #ifdef CONFIG_LOCAL_TIMERS
 	for_each_cpu(freqs->cpu, dvfs->cpus)
