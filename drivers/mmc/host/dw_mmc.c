@@ -148,8 +148,8 @@ struct dw_mci_slot {
 
 static struct workqueue_struct *dw_mci_card_workqueue;
 
-
-#if defined(CONFIG_ESP8089) || defined(CONFIG_BCMDHD) || defined(CONFIG_BCMDHD_MODULE)
+#if defined(CONFIG_ESP8089) || defined(CONFIG_LINUX_BACKPORTS) || \
+	defined(CONFIG_BCMDHD) || defined(CONFIG_BCMDHD_MODULE)
 #include <mach/platform.h>
 static struct dw_mci_slot* mci_slot[4] = {NULL, NULL, NULL, NULL};
 static int mci_id = 0;
@@ -2333,7 +2333,8 @@ static int dw_mci_init_slot(struct dw_mci *host, unsigned int id)
 	slot->host = host;
 	host->slot[id] = slot;	/* add by jhkim */
 
-#if defined(CONFIG_ESP8089) || defined(CONFIG_BCMDHD) || defined(CONFIG_BCMDHD_MODULE)
+#if defined(CONFIG_ESP8089) || defined(CONFIG_LINUX_BACKPORTS) || \
+	defined(CONFIG_BCMDHD) || defined(CONFIG_BCMDHD_MODULE)
 	mci_slot[mci_id++] = slot;
 #endif
 
