@@ -22,6 +22,11 @@ config FB0_NXP
 		depends on FB0_NXP
 		default 0
 
+	config FB0_NXP_FIXED_DPI
+		bool "Size (mm) in Fixed DPI"
+		depends on FB0_NXP
+		default n
+
 config FB1_NXP
 	bool "Support secondary frame buffer (/dev/fb1)"
 	depends on FB_NXP

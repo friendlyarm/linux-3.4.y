@@ -418,8 +418,13 @@ static void nxp_platform_fb_data(struct nxp_lcd *lcd)
 		pdata->x_resol = lcd->width;
 		pdata->y_resol = lcd->height;
 
+#if defined (CONFIG_FB0_NXP_FIXED_DPI)
+		pdata->lcd_with_mm = (lcd->width * 254) / 1310;
+		pdata->lcd_height_mm = (lcd->height * 254) / 1310;
+#else
 		pdata->lcd_with_mm = lcd->p_width;
 		pdata->lcd_height_mm = lcd->p_height;
+#endif
 	}
 #endif
 }
