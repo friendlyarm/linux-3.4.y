@@ -55,7 +55,7 @@ static inline void ap621x_wifi_init(void)
 	}
 }
 
-#elif defined(CONFIG_ARCH_S5P4418)
+#elif defined(CONFIG_ARCH_CPU_SLSI)
 #include <linux/platform_device.h>
 
 #define SRCBASE		"drivers/net/wireless/bcm4336"

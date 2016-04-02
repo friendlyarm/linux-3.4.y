@@ -173,10 +173,10 @@ static int ft5x0x_read_fw_ver(unsigned char *val)
 static void ft5x0x_ts_report(struct ft5x0x_ts_data *ts) {
 	struct ft5x0x_event *event = &ts->event;
 	int x, y;
-	int i;
+	int i = 0;
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
-	for (i = 0; i < event->touch_point; i++) {
+	for (; i < event->touch_point; i++) {
 		if (swap_xy) {
 			x = event->y[i];
 			y = event->x[i];

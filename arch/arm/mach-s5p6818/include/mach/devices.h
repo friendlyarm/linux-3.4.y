@@ -204,6 +204,7 @@ struct nxp_cpufreq_plat_data {
     long rest_retention;    /* unit msec */
 	char *supply_name;		/* voltage regulator name */
 	long supply_delay_us;
+	unsigned long fixed_voltage;
 };
 
 /*

@@ -611,7 +611,6 @@ static int __devinit nxp_tmu_probe(struct platform_device *pdev)
 
 	cpufreq_get_policy(&policy, 0);
 
-	info->channel =	plat->channel;
 	info->name = DRVNAME;
 	info->channel = plat->channel;
 	info->poll_duration = plat->poll_duration ? plat->poll_duration : TMU_POLL_TIME;

@@ -68,11 +68,11 @@ static void bd_gpio_init(void)
 	};
 
 	/* GPIO pad function */
-	for (index = 0; NUMBER_OF_GPIO_MODULE > index; index++) {
+	for (index = 0; index < NUMBER_OF_GPIO_MODULE; index++) {
 
 		NX_GPIO_ClearInterruptPendingAll(index);
 
-		for (bit = 0; 32 > bit; bit++) {
+		for (bit = 0; bit < 32; bit++) {
 			gpio  = pads[index][bit];
 			func  = PAD_GET_FUNC(gpio);
 			mode  = PAD_GET_MODE(gpio);
@@ -105,7 +105,7 @@ static void bd_gpio_init(void)
 			NX_GPIO_SetInterruptMode(index, bit, (lv));
 
 			NX_GPIO_SetPullEnable(index, bit, (NX_GPIO_PULL)plup);
-			NX_GPIO_SetDriveStrength(index, bit, (NX_GPIO_DRVSTRENGTH)stren); /* pad strength */
+			NX_GPIO_SetDriveStrength(index, bit, (NX_GPIO_DRVSTRENGTH)stren);
 		}
 	}
 }
@@ -167,7 +167,7 @@ void nxp_board_base_init(void)
 	{
 		bd_gpio_init();
 		bd_alive_init();
-		DBGOUT("%s : done board initialize ...\n", CFG_SYS_BOARD_NAME);
+		DBGOUT("%s: Board initialized\n", CFG_SYS_BOARD_NAME);
 
 		g_initGpio = 0;
 	}
@@ -178,10 +178,11 @@ void nxp_board_base_init(void)
 static int __init devtmpfs_init(void)
 {
 	char *rdsrc = CONFIG_INITRAMFS_SOURCE;
+
 	if (!strcmp(rdsrc, ""))
 		return 0;
 
-	printk("Mount   : devtmpfs\n");
+	printk("%s: Mounting devtmpfs @dev\n", CFG_SYS_CPU_NAME);
 	devtmpfs_mount("dev");
 	return 0;
 }

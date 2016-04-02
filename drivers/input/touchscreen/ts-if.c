@@ -22,6 +22,7 @@
 #define S3CFB_HRES		800		/* horizon pixel  x resolition */
 #define S3CFB_VRES		480		/* line cnt       y resolution */
 extern void nanopi2_get_lcd_res(int *w, int *h);
+extern void nanopi3_get_lcd_res(int *w, int *h);
 
 #define S3C_TSVERSION	0x0101
 #define DEBUG_LVL		KERN_DEBUG
@@ -95,7 +96,11 @@ static int __init dev_init(void)
 		return ret;
 	}
 
+#if defined(CONFIG_PLAT_S5P4418_NANOPI2)
 	nanopi2_get_lcd_res(&width, &height);
+#elif defined(CONFIG_PLAT_S5P6818_NANOPI3)
+	nanopi3_get_lcd_res(&width, &height);
+#endif
 	if (!width)
 		width = S3CFB_HRES;
 	if (!height)

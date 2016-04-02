@@ -16,7 +16,7 @@ uint bcm_wlan_get_oob_irq(void)
 	printf("GPIO(GPIO_WLAN_HOST_WAKE) = %d\n", brcm_gpio_host_wake());
 	host_oob_irq = gpio_to_irq(brcm_gpio_host_wake());
 	gpio_direction_input(brcm_gpio_host_wake());
-#elif defined(CONFIG_ARCH_S5P4418)
+#elif defined(CONFIG_ARCH_CPU_SLSI)
 	host_oob_irq = get_host_wake_irq();
 #endif
 
@@ -28,7 +28,7 @@ uint bcm_wlan_get_oob_irq_flags(void)
 {
 	uint host_oob_irq_flags = 0;
 
-#if defined(GPIO_WLAN_HOST_WAKE) || defined(CONFIG_ARCH_S5P4418)
+#if defined(GPIO_WLAN_HOST_WAKE) || defined(CONFIG_ARCH_CPU_SLSI)
 #ifdef HW_OOB
 	host_oob_irq_flags = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL | IORESOURCE_IRQ_SHAREABLE;
 #else
@@ -49,7 +49,7 @@ int bcm_wlan_set_power(bool on)
 		printf("======== PULL WL_REG_ON HIGH! ========\n");
 #ifdef GPIO_WLAN_EN
 		gpio_set_value(GPIO_WLAN_EN, 1);
-#elif defined(CONFIG_ARCH_S5P4418)
+#elif defined(CONFIG_ARCH_CPU_SLSI)
 		wifi_pm_gpio_ctrl("bcmdhd", 1);
 #endif
 		/* Lets customer power to get stable */
@@ -58,7 +58,7 @@ int bcm_wlan_set_power(bool on)
 		printf("======== PULL WL_REG_ON LOW! ========\n");
 #ifdef GPIO_WLAN_EN
 		gpio_set_value(GPIO_WLAN_EN, 0);
-#elif defined(CONFIG_ARCH_S5P4418)
+#elif defined(CONFIG_ARCH_CPU_SLSI)
 		wifi_pm_gpio_ctrl("bcmdhd", 0);
 #endif
 		msleep(50);
@@ -81,7 +81,7 @@ int bcm_wlan_set_carddetect(bool present)
 	}
 #endif
 
-#if defined(CONFIG_ARCH_S5P4418)
+#if defined(CONFIG_ARCH_CPU_SLSI)
 	force_presence_change(NULL, present);
 #else
 	mmc_force_presence_change_onoff(&sdmmc_channel, present);

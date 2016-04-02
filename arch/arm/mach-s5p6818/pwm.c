@@ -68,12 +68,14 @@ EXPORT_SYMBOL(pwm_free);
 
 int pwm_enable(struct pwm_device *pwm)
 {
+	nxp_soc_pwm_start(pwm->pwm_id, 0);
 	return 0;
 }
 EXPORT_SYMBOL(pwm_enable);
 
 void pwm_disable(struct pwm_device *pwm)
 {
+	nxp_soc_pwm_stop(pwm->pwm_id, 0);
 }
 EXPORT_SYMBOL(pwm_disable);
 

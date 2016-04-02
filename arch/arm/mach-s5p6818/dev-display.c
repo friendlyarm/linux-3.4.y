@@ -60,6 +60,7 @@
 		SET_PARAM(s, d, clk_div_lv0);       \
 		SET_PARAM(s, d, clk_src_lv1);       \
 		SET_PARAM(s, d, clk_div_lv1);       \
+		SET_PARAM(s, d, clk_out_inv);       \
 		}	\
 	}
 
@@ -180,7 +181,8 @@ static void __disp_lcd_dev_data(struct disp_vsync_info *vsync,
 	if (sgpar)
 		plcd->sync_gen = sgpar;
 
-	SET_VSYNC_INFO(vsync, plcd->vsync);
+	if (plcd->vsync && vsync)
+		*plcd->vsync = *vsync;
 }
 #else
 #define	__disp_lcd_dev_data(s, p, g)
@@ -264,7 +266,8 @@ static void __disp_lvds_dev_data(struct disp_vsync_info *vsync,
 	if (sgpar)
 		plcd->sync_gen = sgpar;
 
-	SET_VSYNC_INFO(vsync, plcd->vsync);
+	if (plcd->vsync && vsync)
+		*plcd->vsync = *vsync;
 }
 
 #else

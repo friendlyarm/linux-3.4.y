@@ -943,7 +943,7 @@ config TOUCHSCREEN_GOODIX
 
 config TOUCHSCREEN_1WIRE
 	tristate "1-Wire host and Touch Screen Driver"
-	depends on PLAT_S5P4418_NANOPI2
+	depends on (PLAT_S5P4418_NANOPI2 || PLAT_S5P6818_NANOPI3)
 	help
 	  Say Y here to enable the 1-Wire host and Touch Screen driver for
 	  FriendlyARM NanoPi2 development board.
@@ -955,7 +955,7 @@ config TOUCHSCREEN_1WIRE
 
 config AUTO_REPORT_1WIRE_INPUT
 	tristate "Auto report 1wire data to input system"
-	depends on PLAT_S5P4418_NANOPI2
+	depends on (PLAT_S5P4418_NANOPI2 || PLAT_S5P6818_NANOPI3)
 	default n
 	help
 	  Say Y here to enable auto report 1wire touch data to input system.
@@ -968,7 +968,7 @@ config TOUCHSCREEN_IF
 
 config TOUCHSCREEN_IT7260
 	tristate "ITE it7260 TouchScreen driver"
-	depends on PLAT_S5P4418_NANOPI2
+	depends on (PLAT_S5P4418_NANOPI2 || PLAT_S5P6818_NANOPI3)
 	help
 	  Say Y here to support ITE it7260 based touchscreen on
 	  FriendlyARM NanoPi2 development board.

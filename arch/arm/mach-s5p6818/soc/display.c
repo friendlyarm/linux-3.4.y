@@ -684,8 +684,8 @@ static int  disp_syncgen_prepare(struct disp_control_info *info)
 #else
     {
         POLARITY FieldPolarity = POLARITY_ACTIVEHIGH;
-        POLARITY HSyncPolarity = POLARITY_ACTIVEHIGH;
-        POLARITY VSyncPolarity = POLARITY_ACTIVEHIGH;
+        POLARITY HSyncPolarity = psync->h_sync_invert; // POLARITY_ACTIVEHIGH;
+        POLARITY VSyncPolarity = psync->v_sync_invert; // POLARITY_ACTIVEHIGH;
 
         NX_DPC_SetSync ( module,
                 PROGRESSIVE,
@@ -706,6 +706,11 @@ static int  disp_syncgen_prepare(struct disp_control_info *info)
         NX_DPC_SetOutputFormat(module, out_format, 0 );
         NX_DPC_SetDither(module, RDither, GDither, BDither);
         NX_DPC_SetQuantizationMode(module, QMODE_256, QMODE_256 );
+
+        if (psync->clk_out_inv) {
+            NX_DPC_SetClockOutInv(module, 0, 1);
+            NX_DPC_SetClockOutInv(module, 1, 1);
+        }
     }
 #endif
 

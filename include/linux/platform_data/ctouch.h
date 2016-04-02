@@ -37,6 +37,18 @@ static inline void board_set_ctp(int type) {
 	nanopi2_set_ctp(type);
 }
 
+#elif defined(CONFIG_PLAT_S5P6818_NANOPI3)
+extern unsigned int nanopi3_get_ctp(void);
+extern void nanopi3_set_ctp(int type);
+
+static inline int board_get_ctp(void) {
+	return nanopi3_get_ctp();
+}
+
+static inline void board_set_ctp(int type) {
+	nanopi3_set_ctp(type);
+}
+
 #else
 
 /* Stubs */
