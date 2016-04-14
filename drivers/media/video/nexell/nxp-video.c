@@ -31,6 +31,13 @@
 #define YUV_YSTRIDE(w)   (ALIGN(w/2, YUV_STRIDE_ALIGN_FACTOR) * 2)
 #define YUV_VSTRIDE(h)   ALIGN(h, YUV_VSTRIDE_ALIGN_FACTOR)
 
+/* Desired device node number */
+#if defined(ANDROID)
+#define NXP_VIDEO_NR	-1
+#else
+#define NXP_VIDEO_NR	 4
+#endif
+
 /*
  * static variables
  */
@@ -1493,7 +1500,7 @@ int register_nxp_video(struct nxp_video *me)
     me->vdev.v4l2_dev = me->v4l2_dev;
 
     pr_debug("%s: entered\n", __func__);
-    ret = video_register_device(&me->vdev, VFL_TYPE_GRABBER, -1);
+    ret = video_register_device(&me->vdev, VFL_TYPE_GRABBER, NXP_VIDEO_NR);
     if (ret < 0) {
         pr_err("%s: failed to video_register_device()\n", __func__);
         return ret;
