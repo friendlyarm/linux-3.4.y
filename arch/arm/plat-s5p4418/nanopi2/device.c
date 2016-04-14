@@ -1502,7 +1502,7 @@ static void __init board_fixup_dwmci2(void)
 					  DW_MCI_QUIRK_HIGHSPEED |
 					  DW_MMC_QUIRK_HW_RESET_PW |
 					  DW_MCI_QUIRK_NO_DETECT_EBIT;
-	pd->bus_hz		= 100 * 1000 * 1000;
+	pd->bus_hz		= 200 * 1000 * 1000;
 	pd->caps		= MMC_CAP_UHS_DDR50 |
 					  MMC_CAP_NONREMOVABLE |
 					  MMC_CAP_4_BIT_DATA | MMC_CAP_CMD23 |
