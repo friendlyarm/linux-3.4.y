@@ -24,38 +24,32 @@
 
 
 /* Board revision list: <PCB3 | PCB2 | PCB1>
- *  0b000 - NanoPi 3
  *  0b001 - NanoPC-T3
  *  0b011 - Smart6818
- *  0b100 - NanoPi 3 Fire
- *  0b101 - NanoPi 3 Hello
- *  0b110 - NanoPi 3 Black
+ *  0b111 - NanoPi M3
  */
-#define HWREV_A			0x2
 #define HWREV_B			0x1
 #define HWREV_C			0x3
-#define HWREV_D			0x4
-#define HWREV_E			0x5
-#define HWREV_F			0x6
+#define HWREV_G			0x7
 
 
 extern int board_get_revision(void);
 
-#define board_is_nanopi()	(board_get_revision() == HWREV_A)
 #define board_is_nanopc()	(board_get_revision() == HWREV_B)
 #define board_is_smart6818()	(board_get_revision() == HWREV_C)
-#define board_is_fire()		(board_get_revision() == HWREV_D)
-#define board_is_hello()	(board_get_revision() == HWREV_E)
-#define board_is_black()	(board_get_revision() == HWREV_F)
+#define board_is_M3()		(board_get_revision() == HWREV_G)
 
 
 static inline int board_with_ap6212(void) {
-	return board_is_nanopi() || board_is_nanopc() || board_is_black();
+	return (board_is_nanopc() || board_is_M3());
 }
 
 static inline int board_with_es8316(void) {
-	return (board_is_nanopc() || board_is_smart6818() ||
-			board_is_hello() || board_is_black());
+	return (board_is_nanopc() || board_is_M3() || board_is_smart6818());
+}
+
+static inline int board_with_gmac_eth(void) {
+	return 1;
 }
 
 #endif /* __BOARD_REVISION_H__ */

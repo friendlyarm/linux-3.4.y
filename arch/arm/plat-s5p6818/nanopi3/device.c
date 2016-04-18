@@ -113,6 +113,7 @@ struct nxp_cpufreq_plat_data dfs_plat_data = {
 	.supply_name	= "vdd_arm_1.3V",
 	.freq_table		= dfs_freq_table,
 	.table_size		= ARRAY_SIZE(dfs_freq_table),
+	.fixed_voltage		= 1200000,
 };
 
 static struct platform_device dfs_plat_device = {
@@ -1690,8 +1691,9 @@ void __init nxp_board_devs_register(void)
 
 #if defined(CONFIG_MMC_DW)
 	printk("plat: boot from mmc.%d\n", bootdev);
-	if (board_is_fire() || board_is_hello()) {
+	if (board_is_M3()) {
 		_dwmci0_add_device();
+		_dwmci1_add_device();
 	} else if (bootdev == 2) {
 		_dwmci2_add_device();
 		_dwmci1_add_device();
@@ -1822,7 +1824,7 @@ void __init nxp_board_devs_register(void)
 #endif
 
 #if defined(CONFIG_NXPMAC_ETH)
-	if (!board_is_nanopi()) {
+	if (board_with_gmac_eth()) {
 		make_ether_addr(nxpmac_plat_data.dev_addr);
 		printk("plat: add device nxp-gmac\n");
 		platform_device_register(&nxp_gmac_dev);
