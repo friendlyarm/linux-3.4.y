@@ -1081,7 +1081,7 @@ static struct nxp_capture_platformdata capture_plat_data[] = {
 #if defined(CONFIG_VIDEO_OV5640)
 	{
 		/* back_camera 656 interface */
-		.module = 1,
+		.module = 0,
 		.sensor = &sensor[0],
 		.type = NXP_CAPTURE_INF_PARALLEL,
 		.parallel = {
