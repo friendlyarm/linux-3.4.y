@@ -19,6 +19,7 @@
 
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/gpio.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
@@ -34,7 +35,6 @@
 */
 
 #if defined (CFG_IO_AUDIO_AMP_POWER)
-#include <linux/gpio.h>
 #define AUDIO_AMP_POWER     CFG_IO_AUDIO_AMP_POWER
 #endif
 
@@ -75,12 +75,17 @@ static int es8316_jack_status_check(void)
 	if (!level) {
 		es8316_jack_insert = 0;
 		es8316_mono_en(1);
-		if (codec->dapm.bias_level >= SND_SOC_BIAS_PREPARE)
+		if (codec->dapm.bias_level >= SND_SOC_BIAS_PREPARE) {
+#if defined (CFG_IO_AUDIO_AMP_POWER)
 			gpio_set_value(AUDIO_AMP_POWER, 1);
+#endif
+		}
 	} else {
 		es8316_jack_insert = 1;
 		es8316_mono_en(0);
+#if defined (CFG_IO_AUDIO_AMP_POWER)
 		gpio_set_value(AUDIO_AMP_POWER, 0);
+#endif
 	}
 
 	pr_debug("%s: jack_insert %d\n", __func__, es8316_jack_insert);
@@ -112,7 +117,9 @@ static int es8316_suspend_pre(struct snd_soc_card *card)
 {
     PM_DBGOUT("+%s\n", __func__);
 
+#if defined (CFG_IO_AUDIO_AMP_POWER)
 	gpio_set_value(AUDIO_AMP_POWER, 0);
+#endif
 
     return 0;
 }

@@ -260,7 +260,7 @@
 /*------------------------------------------------------------------------------
  *	AUDIO AMP for es8316
  */
-#define CFG_IO_AUDIO_AMP_POWER				(PAD_GPIO_D + 19)		/* GPIO */
+//#define CFG_IO_AUDIO_AMP_POWER				(PAD_GPIO_D + 19)		/* GPIO */
 
 
 #endif	/* __CFG_GPIO_H__ */
