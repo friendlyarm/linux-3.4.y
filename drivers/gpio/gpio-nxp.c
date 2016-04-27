@@ -189,7 +189,7 @@ static int nxp_gpio_probe(struct platform_device *pdev)
 	gpio->chip.get = nxp_gpio_get_value;
 	gpio->chip.set = nxp_gpio_set_value;
 	gpio->chip.ngpio = res->end - res->start;
-	gpio->chip.label = dev_name(&pdev->dev);
+	gpio->chip.label = io_name[pdev->id];
 	gpio->chip.dev = &pdev->dev;
 	gpio->chip.owner = THIS_MODULE;
 	gpio->chip.base = pdev->id * GPIO_NUM_PER_BANK;
