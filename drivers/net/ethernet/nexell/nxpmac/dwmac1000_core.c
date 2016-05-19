@@ -105,8 +105,8 @@ static void dwmac1000_set_filter(struct net_device *dev, int id)
 		u32 mc_filter[2];
 		struct netdev_hw_addr *ha;
 
-		/* Hash filter for multicast */
-		value = GMAC_FRAME_FILTER_HMC;
+		/* Pass all multicast instead of (buggy?) Hash filter */
+		value = GMAC_FRAME_FILTER_PM;
 
 		memset(mc_filter, 0, sizeof(mc_filter));
 		netdev_for_each_mc_addr(ha, dev) {
