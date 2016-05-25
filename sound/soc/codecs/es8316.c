@@ -53,7 +53,7 @@ int es8316_hp_det_gpio = INVALID_GPIO;
 #define es8316_DEF_VOL			0x1e
 #endif
 
-int es8316_jack_insert;
+int es8316_jack_insert = 0;
 extern int es8316_spk_on(int enable);
 
 struct snd_soc_codec *es8316_codec;
@@ -1131,7 +1131,6 @@ static int es8316_i2c_write(const struct i2c_client *client, const char *buf, in
 static int es8316_probe(struct snd_soc_codec *codec)
 {
 	int ret = 0;
-	es8316_jack_insert = 0;
  	DBG("---%s--start--\n",__FUNCTION__);
 	codec->read  = es8316_read_reg_cache;
 	codec->write = es8316_write;

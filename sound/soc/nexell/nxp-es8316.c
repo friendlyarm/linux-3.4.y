@@ -336,6 +336,7 @@ static int es8316_probe(struct platform_device *pdev)
 					hpin->debounce_time : 200;
 		} else {
 			jack->name = NULL;
+			es8316_jack_insert = 1;	/* Stereo out */
 		}
 	}
 #if defined (CFG_IO_AUDIO_AMP_POWER)
