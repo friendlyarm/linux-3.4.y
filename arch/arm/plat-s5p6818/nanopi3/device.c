@@ -1253,56 +1253,62 @@ static struct platform_device nxp_v4l2_dev = {
 /*------------------------------------------------------------------------------
  * SSP/SPI
  */
-#if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
-#include <linux/spi/spi.h>
+#if defined(CONFIG_SPI_SLSI)
+#include <mach/slsi-spi.h>
 
-static void spi0_cs(u32 chipselect)
-{
-#if (CFG_SPI0_CS_GPIO_MODE)
-	if (nxp_soc_gpio_get_io_func( CFG_SPI0_CS ) != nxp_soc_gpio_get_altnum( CFG_SPI0_CS ))
-		nxp_soc_gpio_set_io_func( CFG_SPI0_CS, nxp_soc_gpio_get_altnum( CFG_SPI0_CS ));
-
-	nxp_soc_gpio_set_io_dir( CFG_SPI0_CS, 1);
-	nxp_soc_gpio_set_out_value( CFG_SPI0_CS , chipselect);
-#else
-	;
-#endif
-}
-
-struct pl022_config_chip spi0_info = {
-	/* available POLLING_TRANSFER, INTERRUPT_TRANSFER, DMA_TRANSFER */
-	.com_mode = CFG_SPI0_COM_MODE,
-	.iface = SSP_INTERFACE_MOTOROLA_SPI,
-	/* We can only act as master but SSP_SLAVE is possible in theory */
-	.hierarchy = SSP_MASTER,
-	/* 0 = drive TX even as slave, 1 = do not drive TX as slave */
-	.slave_tx_disable = 1,
-	.rx_lev_trig = SSP_RX_4_OR_MORE_ELEM,
-	.tx_lev_trig = SSP_TX_4_OR_MORE_EMPTY_LOC,
-	.ctrl_len = SSP_BITS_8,
-	.wait_state = SSP_MWIRE_WAIT_ZERO,
-	.duplex = SSP_MICROWIRE_CHANNEL_FULL_DUPLEX,
-	/*
-	 * This is where you insert a call to a function to enable CS
-	 * (usually GPIO) for a certain chip.
-	 */
-#if (CFG_SPI0_CS_GPIO_MODE)
-	.cs_control = spi0_cs,
-#endif
-	.clkdelay = SSP_FEEDBACK_CLK_DELAY_1T,
-};
-
-static struct spi_board_info spi_plat_board[] __initdata = {
+#if defined(CONFIG_SPI_SLSI_PORT0)
+static struct s3c64xx_spi_csinfo spi0_csi[] = {
 	[0] = {
-		.modalias        = "spidev",    /* fixup */
-		.max_speed_hz    = 3125000,     /* max spi clock (SCK) speed in HZ */
-		.bus_num         = 0,           /* Note> set bus num, must be smaller than ARRAY_SIZE(spi_plat_device) */
-		.chip_select     = 0,           /* Note> set chip select num, must be smaller than spi cs_num */
-		.controller_data = &spi0_info,
-		.mode            = SPI_MODE_3 | SPI_CPOL | SPI_CPHA,
+		.line		= CFG_SPI0_CS,
+		.set_level	= gpio_set_value,
+		.fb_delay	= 0x2,
 	},
 };
 #endif
+
+#if defined(CONFIG_SPI_SLSI_PORT2)
+static struct s3c64xx_spi_csinfo spi2_csi[] = {
+	[0] = {
+		.line		= CFG_SPI2_CS,
+		.set_level	= gpio_set_value,
+		.fb_delay	= 0x2,
+	},
+};
+#endif
+#endif /* CONFIG_SPI_SLSI */
+
+#if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
+#include <linux/spi/spi.h>
+#include <linux/gpio.h>
+
+struct spi_board_info spi0_board_info[] __initdata = {
+#if defined(CONFIG_SPI_SLSI_PORT0)
+	{
+		.modalias		= "spidev",
+		.platform_data	= NULL,
+		.max_speed_hz	= 10 * 1000 * 1000,
+		.bus_num		= 0,
+		.chip_select	= 0,
+		.mode			= SPI_MODE_0,
+		.controller_data	= &spi0_csi[0],
+	}
+#endif
+};
+
+struct spi_board_info spi2_board_info[] __initdata = {
+#if defined(CONFIG_SPI_SLSI_PORT2)
+	{
+		.modalias		= "spidev",
+		.platform_data	= NULL,
+		.max_speed_hz	= 10 * 1000 * 1000,
+		.bus_num		= 2,
+		.chip_select	= 0,
+		.mode			= SPI_MODE_0,
+		.controller_data	= &spi2_csi[0],
+	}
+#endif
+};
+#endif /* CONFIG_SPI_SPIDEV || CONFIG_SPI_SPIDEV_MODULE */
 
 /*------------------------------------------------------------------------------
  * DW MMC board config
@@ -1759,7 +1765,10 @@ void __init nxp_board_devs_register(void)
 #endif
 
 #if defined(CONFIG_SPI_SPIDEV) || defined(CONFIG_SPI_SPIDEV_MODULE)
-	spi_register_board_info(spi_plat_board, ARRAY_SIZE(spi_plat_board));
+	if (ARRAY_SIZE(spi0_board_info) > 0)
+		spi_register_board_info(spi0_board_info, ARRAY_SIZE(spi0_board_info));
+	if (ARRAY_SIZE(spi2_board_info) > 0)
+		spi_register_board_info(spi2_board_info, ARRAY_SIZE(spi2_board_info));
 	printk("plat: register spidev\n");
 #endif
 

@@ -214,6 +214,7 @@
 #define CFG_SPI2_CS_GPIO_MODE					0	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
 
 #define CFG_SPI0_CS								(PAD_GPIO_C + 30)	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
+#define CFG_SPI2_CS								(PAD_GPIO_C + 10)
 
 /*------------------------------------------------------------------------------
  *  MPEGTSIF
