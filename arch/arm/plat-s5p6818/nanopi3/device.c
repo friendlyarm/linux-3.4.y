@@ -1666,7 +1666,7 @@ void __init nxp_board_devs_register(void)
 
 	board_hwrev_init();
 
-	if (board_is_nanopc() || board_is_smart6818()) {
+	if (board_is_nanopc() || board_is_smart6818() || board_is_S3()) {
 #ifdef CONFIG_MMC_NXP_CH2
 		board_fixup_dwmci2();
 #endif
