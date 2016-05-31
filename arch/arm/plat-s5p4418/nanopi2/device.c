@@ -1670,16 +1670,20 @@ static void __init board_hwrev_init(void)
 {
 	int rev;
 
-	rev  = nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB1);
-	rev |= nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB2) << 1;
-	rev |= nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB3) << 2;
+	/* Maybe uninitialized by ATAG_REVISION */
+	if (!system_rev) {
+		rev  = nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB1);
+		rev |= nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB2) << 1;
+		rev |= nxp_soc_gpio_get_in_value(CFG_IO_HW_PCB3) << 2;
 
-	/* Initialize system Revision & Serial */
-	system_rev = rev;
+		system_rev = rev;
+	}
+
+	/* Initialize system Serial */
 	system_serial_high = 0xFA4418DB;
-	system_serial_low  = 0xA4420544;
+	system_serial_low  = 0xA5110622;
 
-	printk("plat: board revision %d\n", rev);
+	printk("plat: board revision %x\n", system_rev);
 }
 
 /*------------------------------------------------------------------------------
@@ -1693,7 +1697,8 @@ void __init nxp_board_devices_register(void)
 
 	board_hwrev_init();
 
-	if (board_is_nanopc() || board_is_smart4418()) {
+	if (board_is_nanopc() || board_is_S2() || \
+		board_is_smart4418() || board_is_smart4418sdk()) {
 #ifdef CONFIG_MMC_NXP_CH2
 		board_fixup_dwmci2();
 #endif
@@ -1727,7 +1732,7 @@ void __init nxp_board_devices_register(void)
 
 #if defined(CONFIG_MMC_DW)
 	printk("plat: boot from mmc.%d\n", bootdev);
-	if (board_is_fire() || board_is_hello()) {
+	if (board_is_fire() || board_is_M2()) {
 		_dwmci0_add_device();
 	} else if (bootdev == 2) {
 		_dwmci2_add_device();
@@ -1779,7 +1784,8 @@ void __init nxp_board_devices_register(void)
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
 	if (board_with_es8316()) {
 		printk("plat: add device asoc-es8316\n");
-		if (board_is_nanopc() || board_is_smart4418())
+		if (board_is_nanopc() || \
+			board_is_smart4418() || board_is_smart4418sdk())
 			i2s_dai_data.hp_jack.support = 1;
 		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
 		platform_device_register(&es8316_dai);
