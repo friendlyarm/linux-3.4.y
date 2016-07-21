@@ -21,6 +21,7 @@
 #define CFG_IO_HW_PCB1	(PAD_GPIO_C + 26)
 #define CFG_IO_HW_PCB2	(PAD_GPIO_C + 27)
 #define CFG_IO_HW_PCB3	(PAD_GPIO_C + 25)
+#define CFG_IO_HW_PCBD	(PAD_GPIO_E + 13)
 
 
 /* Board revision list: <PCB3 | PCB2 | PCB1>

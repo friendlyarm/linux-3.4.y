@@ -1711,6 +1711,8 @@ void __init nxp_board_devices_register(void)
 	}
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
+	if (nxp_soc_gpio_get_in_value(CFG_IO_HW_PCBD))
+		dfs_plat_data.fixed_voltage = 0;
 	printk("plat: add dynamic frequency (pll.%d)\n", dfs_plat_data.pll_dev);
 	platform_device_register(&dfs_plat_device);
 #endif
