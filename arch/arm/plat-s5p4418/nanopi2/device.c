@@ -1697,6 +1697,12 @@ void __init nxp_board_devices_register(void)
 
 	board_hwrev_init();
 
+	if (board_is_smart4418sdk()) {
+		int i;
+		for (i = 22; i < 28; i++)
+			nxp_soc_gpio_set_io_drv(PAD_GPIO_D + i, 1);
+	}
+
 	if (board_is_nanopc() || board_is_S2() || \
 		board_is_smart4418() || board_is_smart4418sdk()) {
 #ifdef CONFIG_MMC_NXP_CH2
