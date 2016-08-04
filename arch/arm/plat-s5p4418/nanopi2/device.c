@@ -1709,11 +1709,13 @@ void __init nxp_board_devices_register(void)
 		board_fixup_dwmci2();
 #endif
 	} else {
-#if defined(CONFIG_SENSORS_NXP_ADC_TEMP)
-		adc_tmp_plat_data.priv = 1;
-#endif
 		/* board without eMMC */
 		bootdev = 0;
+
+#if defined(CONFIG_SENSORS_NXP_ADC_TEMP)
+		if (!board_is_M2A())
+			adc_tmp_plat_data.priv = 1;
+#endif
 	}
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
@@ -1742,6 +1744,9 @@ void __init nxp_board_devices_register(void)
 	printk("plat: boot from mmc.%d\n", bootdev);
 	if (board_is_fire() || board_is_M2()) {
 		_dwmci0_add_device();
+	} else if (board_is_M2A()) {
+		_dwmci0_add_device();
+		_dwmci1_add_device();
 	} else if (bootdev == 2) {
 		_dwmci2_add_device();
 		_dwmci1_add_device();

@@ -30,6 +30,7 @@
  *  0b011 - Smart4418 (core)
  *  0b100 - NanoPi 2 Fire
  *  0b101 - NanoPi M2 (Hello)
+ *  0b111 - NanoPi M2A
  *  0b010 - NanoPi S2
  *
  * Extented revision:
@@ -41,7 +42,8 @@
 #define HWREV_D			0x4
 #define HWREV_E			0x5
 #define HWREV_F			0x6
-#define HWREV_G			0x2
+#define HWREV_G			0x7
+#define HWREV_H			0x2
 #define HWREV_SDK		((1 << 8) | HWREV_C)
 
 
@@ -53,16 +55,17 @@ extern int board_get_revision(void);
 #define board_is_smart4418sdk()	(board_get_revision() == HWREV_SDK)
 #define board_is_fire()		(board_get_revision() == HWREV_D)
 #define board_is_M2()		(board_get_revision() == HWREV_E)
-#define board_is_S2()		(board_get_revision() == HWREV_G)
+#define board_is_M2A()		(board_get_revision() == HWREV_G)
+#define board_is_S2()		(board_get_revision() == HWREV_H)
 
 
 static inline int board_with_ap6212(void) {
 	return (board_is_nanopi() || board_is_nanopc() || board_is_S2() ||
-			board_is_smart4418sdk());
+			board_is_M2A() || board_is_smart4418sdk());
 }
 
 static inline int board_with_es8316(void) {
-	return (board_is_nanopc() || board_is_M2() ||
+	return (board_is_nanopc() || board_is_M2() || board_is_M2A() ||
 			board_is_smart4418() || board_is_smart4418sdk());
 }
 
