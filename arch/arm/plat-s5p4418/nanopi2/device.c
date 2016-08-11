@@ -1878,7 +1878,7 @@ void __init nxp_board_devices_register(void)
 #endif
 
 #if defined(CONFIG_NXPMAC_ETH)
-	if (!board_is_nanopi()) {
+	if (board_with_rtl8211()) {
 		make_ether_addr(nxpmac_plat_data.dev_addr);
 		printk("plat: add device nxp-gmac\n");
 		platform_device_register(&nxp_gmac_dev);

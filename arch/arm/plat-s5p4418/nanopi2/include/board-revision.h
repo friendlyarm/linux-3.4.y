@@ -65,8 +65,13 @@ static inline int board_with_ap6212(void) {
 }
 
 static inline int board_with_es8316(void) {
-	return (board_is_nanopc() || board_is_M2() || board_is_M2A() ||
+	return (board_is_nanopc() || board_is_S2() ||
+			board_is_M2() || board_is_M2A() ||
 			board_is_smart4418() || board_is_smart4418sdk());
+}
+
+static inline int board_with_rtl8211(void) {
+	return !(board_is_nanopi() || board_is_S2());
 }
 
 #endif /* __BOARD_REVISION_H__ */
