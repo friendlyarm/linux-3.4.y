@@ -34,6 +34,8 @@
 #include "amp.h"
 #include "smp.h"
 
+#include "compat/compat.h"
+
 /* Handle HCI Event packets */
 
 static void hci_cc_inquiry_cancel(struct hci_dev *hdev, struct sk_buff *skb)

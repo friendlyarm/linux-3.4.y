@@ -31,6 +31,11 @@
 #include <net/bluetooth/bluetooth.h>
 #include <linux/proc_fs.h>
 
+/* fixup for NO user namespace support for uidgid */
+#undef CONFIG_USER_NS
+#include "compat/compat.h"
+#include "compat/uidgid.h"
+
 #define VERSION "2.19"
 
 /* Bluetooth sockets */
@@ -625,7 +630,7 @@ static int bt_seq_show(struct seq_file *seq, void *v)
 			   atomic_read(&sk->sk_refcnt),
 			   sk_rmem_alloc_get(sk),
 			   sk_wmem_alloc_get(sk),
-			   from_kuid(seq_user_ns(seq), sock_i_uid(sk)),
+			   from_kuid(seq_user_ns(seq), KUIDT_INIT(sock_i_uid(sk))),
 			   sock_i_ino(sk),
 			   bt->parent? sock_i_ino(bt->parent): 0LU);
 

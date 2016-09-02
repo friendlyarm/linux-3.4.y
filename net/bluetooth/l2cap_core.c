@@ -41,6 +41,8 @@
 #include "a2mp.h"
 #include "amp.h"
 
+#include "compat/compat.h"
+
 #define LE_FLOWCTL_MAX_CREDITS 65535
 
 bool disable_ertm;

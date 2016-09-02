@@ -137,10 +137,9 @@ static int hidp_send_intr_message(struct hidp_session *session,
 				 &session->intr_transmit, hdr, data, size);
 }
 
-static int hidp_input_event(struct input_dev *dev, unsigned int type,
-			    unsigned int code, int value)
+static int hidp_queue_event(struct hidp_session *session, struct input_dev *dev,
+			    unsigned int type, unsigned int code, int value)
 {
-	struct hidp_session *session = input_get_drvdata(dev);
 	unsigned char newleds;
 	unsigned char hdr, data[2];
 
@@ -166,6 +165,23 @@ static int hidp_input_event(struct input_dev *dev, unsigned int type,
 	data[1] = newleds;
 
 	return hidp_send_intr_message(session, hdr, data, 2);
+}
+
+static int hidp_hidinput_event(struct input_dev *dev,
+			       unsigned int type, unsigned int code, int value)
+{
+	struct hid_device *hid = input_get_drvdata(dev);
+	struct hidp_session *session = hid->driver_data;
+
+	return hidp_queue_event(session, dev, type, code, value);
+}
+
+static int hidp_input_event(struct input_dev *dev, unsigned int type,
+			    unsigned int code, int value)
+{
+	struct hidp_session *session = input_get_drvdata(dev);
+
+	return hidp_queue_event(session, dev, type, code, value);
 }
 
 static void hidp_input_report(struct hidp_session *session, struct sk_buff *skb)
@@ -308,7 +324,7 @@ err:
 	return ret;
 }
 
-static int hidp_set_raw_report(struct hid_device *hid, unsigned char reportnum,
+static int hidp_output_raw_report(struct hid_device *hid,
 			       unsigned char *data, size_t count,
 			       unsigned char report_type)
 {
@@ -333,7 +349,6 @@ static int hidp_set_raw_report(struct hid_device *hid, unsigned char reportnum,
 		return -ERESTARTSYS;
 
 	/* Set up our wait, and send the report request to the device. */
-	data[0] = reportnum;
 	set_bit(HIDP_WAITING_FOR_SEND_ACK, &session->flags);
 	ret = hidp_send_ctrl_message(session, report_type, data, count);
 	if (ret)
@@ -371,29 +386,6 @@ err:
 	clear_bit(HIDP_WAITING_FOR_SEND_ACK, &session->flags);
 	mutex_unlock(&session->report_mutex);
 	return ret;
-}
-
-static int hidp_output_report(struct hid_device *hid, __u8 *data, size_t count)
-{
-	struct hidp_session *session = hid->driver_data;
-
-	return hidp_send_intr_message(session,
-				      HIDP_TRANS_DATA | HIDP_DATA_RTYPE_OUPUT,
-				      data, count);
-}
-
-static int hidp_raw_request(struct hid_device *hid, unsigned char reportnum,
-			    __u8 *buf, size_t len, unsigned char rtype,
-			    int reqtype)
-{
-	switch (reqtype) {
-	case HID_REQ_GET_REPORT:
-		return hidp_get_raw_report(hid, reportnum, buf, len, rtype);
-	case HID_REQ_SET_REPORT:
-		return hidp_set_raw_report(hid, reportnum, buf, len, rtype);
-	default:
-		return -EIO;
-	}
 }
 
 static void hidp_idle_timeout(unsigned long arg)
@@ -724,8 +716,7 @@ static struct hid_ll_driver hidp_hid_driver = {
 	.stop = hidp_stop,
 	.open  = hidp_open,
 	.close = hidp_close,
-	.raw_request = hidp_raw_request,
-	.output_report = hidp_output_report,
+	.hidinput_input_event = hidp_hidinput_event,
 };
 
 /* This function sets up the hid device. It does not add it
@@ -776,6 +767,10 @@ static int hidp_setup_hid(struct hidp_session *session,
 	hid->dev.parent = &session->conn->hcon->dev;
 	hid->ll_driver = &hidp_hid_driver;
 
+	hid->hid_get_raw_report = hidp_get_raw_report;
+	hid->hid_output_raw_report = hidp_output_raw_report;
+
+#define hid_ignore(hid)		(0)
 	/* True if device is blacklisted in drivers/hid/hid-core.c */
 	if (hid_ignore(hid)) {
 		hid_destroy_device(session->hid);

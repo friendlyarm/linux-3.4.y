@@ -2237,6 +2237,15 @@ static void hci_inq_req(struct hci_request *req, unsigned long opt)
 	hci_req_add(req, HCI_OP_INQUIRY, sizeof(cp), &cp);
 }
 
+/* See kernel/wait.c of v3.18+ */
+static __sched int bit_wait(void *word)
+{
+	if (signal_pending_state(current->state, current))
+		return 1;
+	schedule();
+	return 0;
+}
+
 int hci_inquiry(void __user *arg)
 {
 	__u8 __user *ptr = arg;
@@ -2292,7 +2301,7 @@ int hci_inquiry(void __user *arg)
 		/* Wait until Inquiry procedure finishes (HCI_INQUIRY flag is
 		 * cleared). If it is interrupted by a signal, return -EINTR.
 		 */
-		if (wait_on_bit(&hdev->flags, HCI_INQUIRY,
+		if (wait_on_bit(&hdev->flags, HCI_INQUIRY, bit_wait,
 				TASK_INTERRUPTIBLE))
 			return -EINTR;
 	}

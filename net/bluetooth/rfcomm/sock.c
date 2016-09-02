@@ -54,7 +54,7 @@ static void rfcomm_sk_data_ready(struct rfcomm_dlc *d, struct sk_buff *skb)
 
 	atomic_add(skb->len, &sk->sk_rmem_alloc);
 	skb_queue_tail(&sk->sk_receive_queue, skb);
-	sk->sk_data_ready(sk);
+	sk->sk_data_ready(sk, skb->len);
 
 	if (atomic_read(&sk->sk_rmem_alloc) >= sk->sk_rcvbuf)
 		rfcomm_dlc_throttle(d);
@@ -84,7 +84,7 @@ static void rfcomm_sk_state_change(struct rfcomm_dlc *d, int err)
 			sock_set_flag(sk, SOCK_ZAPPED);
 			bt_accept_unlink(sk);
 		}
-		parent->sk_data_ready(parent);
+		parent->sk_data_ready(parent, 0);
 	} else {
 		if (d->state == BT_CONNECTED)
 			rfcomm_session_getaddr(d->session,
@@ -108,8 +108,9 @@ static void rfcomm_sk_state_change(struct rfcomm_dlc *d, int err)
 static struct sock *__rfcomm_get_listen_sock_by_addr(u8 channel, bdaddr_t *src)
 {
 	struct sock *sk = NULL;
+	struct hlist_node *node;
 
-	sk_for_each(sk, &rfcomm_sk_list.head) {
+	sk_for_each(sk, node, &rfcomm_sk_list.head) {
 		if (rfcomm_pi(sk)->channel != channel)
 			continue;
 
@@ -120,7 +121,7 @@ static struct sock *__rfcomm_get_listen_sock_by_addr(u8 channel, bdaddr_t *src)
 			break;
 	}
 
-	return sk ? sk : NULL;
+	return node ? sk : NULL;
 }
 
 /* Find socket with channel and source bdaddr.
@@ -129,10 +130,11 @@ static struct sock *__rfcomm_get_listen_sock_by_addr(u8 channel, bdaddr_t *src)
 static struct sock *rfcomm_get_sock_by_channel(int state, u8 channel, bdaddr_t *src)
 {
 	struct sock *sk = NULL, *sk1 = NULL;
+	struct hlist_node *node;
 
 	read_lock(&rfcomm_sk_list.lock);
 
-	sk_for_each(sk, &rfcomm_sk_list.head) {
+	sk_for_each(sk, node, &rfcomm_sk_list.head) {
 		if (state && sk->sk_state != state)
 			continue;
 
@@ -149,7 +151,7 @@ static struct sock *rfcomm_get_sock_by_channel(int state, u8 channel, bdaddr_t *
 
 	read_unlock(&rfcomm_sk_list.lock);
 
-	return sk ? sk : sk1;
+	return node ? sk : sk1;
 }
 
 static void rfcomm_sock_destruct(struct sock *sk)
@@ -1000,10 +1002,11 @@ done:
 static int rfcomm_sock_debugfs_show(struct seq_file *f, void *p)
 {
 	struct sock *sk;
+	struct hlist_node *node;
 
 	read_lock(&rfcomm_sk_list.lock);
 
-	sk_for_each(sk, &rfcomm_sk_list.head) {
+	sk_for_each(sk, node, &rfcomm_sk_list.head) {
 		seq_printf(f, "%pMR %pMR %d %d\n",
 			   &rfcomm_pi(sk)->src, &rfcomm_pi(sk)->dst,
 			   sk->sk_state, rfcomm_pi(sk)->channel);

@@ -34,6 +34,8 @@
 
 #include "smp.h"
 
+#include "compat/compat.h"
+
 #define MGMT_VERSION	1
 #define MGMT_REVISION	7
 

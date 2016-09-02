@@ -5,6 +5,8 @@
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 
+#include "compat/compat.h"
+
 static struct class *bt_class;
 
 static inline char *link_typetostr(int type)
