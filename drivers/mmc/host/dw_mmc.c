@@ -2344,7 +2344,7 @@ static int dw_mci_init_slot(struct dw_mci *host, unsigned int id)
 		mmc->ops = &dw_mci_nodma_ops;
 
 #if defined(CONFIG_PLAT_S5P4418_NANOPI2) || \
-	defined(CONFIG_PLAT_S5P4418_NANOPI3)
+	defined(CONFIG_PLAT_S5P6818_NANOPI3)
 	mmc->f_min = max(DIV_ROUND_UP(host->bus_hz, 510), 400000);
 #else
 	mmc->f_min = DIV_ROUND_UP(host->bus_hz, 510);
