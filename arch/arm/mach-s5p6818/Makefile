@@ -17,15 +17,11 @@ obj-$(CONFIG_ANDROID_RAM_CONSOLE)	+= dev-ramcon.o
 #===============================================================================
 # Support prototype
 #===============================================================================
-PROTOTYPE := prototype
-MODULES	  := module
-BASEDIR	  := base
+obj-y += prototype/
 
-include $(srctree)/arch/arm/mach-s5p6818/$(PROTOTYPE).mk
-
-KBUILD_CFLAGS += -I$(srctree)/$(MACHINE)$(PROTOTYPE)/$(BASEDIR)	\
-				 -I$(srctree)/$(MACHINE)$(PROTOTYPE)/$(MODULES)	\
-				 -I$(srctree)/$(MACHINE)$(PROTOTYPE)/$(MODULES)
+KBUILD_CFLAGS += \
+		-I$(srctree)/$(MACHINE)prototype/base \
+		-I$(srctree)/$(MACHINE)prototype/module
 
 ifeq ($(CONFIG_S5P6818_PROTO_RELEASE),y)
 KBUILD_CFLAGS += -D__LINUX__ -D__PRINTK__ -DNX_RELEASE
