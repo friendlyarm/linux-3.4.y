@@ -588,6 +588,26 @@ static struct i2c_board_info __initdata ft5x0x_i2c_bdi = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_GOODIX)
+#include <linux/platform_data/goodix_touch.h>
+
+#define	GOODIX_I2C_BUS		(2)
+
+static struct goodix_i2c_platform_data goodix_pdata = {
+	.gpio_irq		= CFG_IO_TOUCH_IRQ,
+	.irq_cfg		= 0,
+	.gpio_reset		= -1,
+	.screen_max_x	= 1280,
+	.screen_max_y	= 800,
+	.pressure_max	= 255,
+};
+
+static struct i2c_board_info __initdata goodix_i2c_bdi = {
+	I2C_BOARD_INFO("Goodix-TS", 0x5d),
+	.platform_data = &goodix_pdata,
+};
+#endif
+
 #if defined(CONFIG_TOUCHSCREEN_IT7260)
 #define	IT7260_I2C_BUS		(2)
 
@@ -1827,6 +1847,14 @@ void __init nxp_board_devices_register(void)
 	ft5x0x_pdata.screen_max_x = lcd->width;
 	ft5x0x_pdata.screen_max_y = lcd->height;
 	i2c_register_board_info(FT5X0X_I2C_BUS, &ft5x0x_i2c_bdi, 1);
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_GOODIX)
+	printk("plat: add touch(goodix) device\n");
+	goodix_pdata.screen_max_x = lcd->width;
+	goodix_pdata.screen_max_y = lcd->height;
+	i2c_register_board_info(GOODIX_I2C_BUS, &goodix_i2c_bdi, 1);
+	printk("plat: goodix: irq=%d (%d)\n", PB_PIO_IRQ(CFG_IO_TOUCH_IRQ), CFG_IO_TOUCH_IRQ);
 #endif
 
 #if defined(CONFIG_TOUCHSCREEN_IT7260)

@@ -31,7 +31,7 @@
 #define GUP_REG_FW_MSG              0x41E4
 #define GUP_REG_PID_VID             0x8140
 
-#define GUP_SEARCH_FILE_TIMES       50
+#define GUP_SEARCH_FILE_TIMES       2
 
 #define UPDATE_FILE_PATH_1          "/data/_goodix_update_.bin"
 #define UPDATE_FILE_PATH_2          "/sdcard/_goodix_update_.bin"
@@ -471,16 +471,24 @@ s32 gup_enter_update_mode(struct i2c_client *client)
     s32 retry = 0;
     u8 rd_buf[3];
     
+    if (!gpio_is_valid(gtp_rst_gpio)) {
+        GTP_DEBUG("NO valid GPIO for resetting");
+    }
+
     //step1:RST output low last at least 2ms
-    GTP_GPIO_OUTPUT(gtp_rst_gpio, 0);
-    msleep(2);
+    if (gpio_is_valid(gtp_rst_gpio)) {
+        GTP_GPIO_OUTPUT(gtp_rst_gpio, 0);
+        msleep(2);
+    }
     
     //step2:select I2C slave addr,INT:0--0xBA;1--0x28.
     GTP_GPIO_OUTPUT(gtp_int_gpio, (client->addr == 0x14));
     msleep(2);
     
     //step3:RST output high reset guitar
-    GTP_GPIO_OUTPUT(gtp_rst_gpio, 1);
+    if (gpio_is_valid(gtp_rst_gpio)) {
+        GTP_GPIO_OUTPUT(gtp_rst_gpio, 1);
+    }
     
     //20121211 modify start
     msleep(5);
@@ -3082,15 +3090,19 @@ s32 gup_enter_update_mode_fl(struct i2c_client *client)
     //u8 rd_buf[3];
     
     //step1:RST output low last at least 2ms
-    GTP_GPIO_OUTPUT(gtp_rst_gpio, 0);
-    msleep(2);
-    
+    if (gpio_is_valid(gtp_rst_gpio)) {
+        GTP_GPIO_OUTPUT(gtp_rst_gpio, 0);
+        msleep(2);
+    }
+
     //step2:select I2C slave addr,INT:0--0xBA;1--0x28.
     GTP_GPIO_OUTPUT(gtp_int_gpio, (client->addr == 0x14));
     msleep(2);
     
     //step3:RST output high reset guitar
-    GTP_GPIO_OUTPUT(gtp_rst_gpio, 1);
+    if (gpio_is_valid(gtp_rst_gpio)) {
+        GTP_GPIO_OUTPUT(gtp_rst_gpio, 1);
+    }
     
     msleep(5);
     

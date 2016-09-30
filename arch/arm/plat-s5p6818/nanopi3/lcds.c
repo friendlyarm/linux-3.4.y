@@ -550,7 +550,7 @@ static struct {
 } nanopi3_lcd_config[] = {
 	{ "HD101",	&wxga_hd101, 1 },
 	{ "HD700",	&wxga_hd700, 1 },
-	{ "HD701",	&wxga_hd700, 1 },
+	{ "HD702",	&wxga_hd700, CTP_GOODIX  },
 	{ "S70",	&wvga_s70,   1 },
 	{ "S702",	&wvga_s702,  1 },
 	{ "S70D",	&wvga_s70d,  0 },
