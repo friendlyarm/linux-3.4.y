@@ -190,6 +190,32 @@ static struct nxp_lcd wvga_s70d = {
 };
 
 #ifndef CONFIG_ANDROID
+static struct nxp_lcd hvga_h43 = {
+	.width = 480,
+	.height = 272,
+	.p_width = 96,
+	.p_height = 54,
+	.bpp = 32,
+	.freq = 65,
+
+	.timing = {
+		.h_fp =  5,
+		.h_bp = 40,
+		.h_sw =  2,
+		.v_fp =  8,
+		.v_fpe = 1,
+		.v_bp =  8,
+		.v_bpe = 1,
+		.v_sw =  2,
+	},
+	.polarity = {
+		.rise_vclk = 0,
+		.inv_hsync = 1,
+		.inv_vsync = 1,
+		.inv_vden = 0,
+	},
+};
+
 static struct nxp_lcd hvga_p43 = {
 	.width = 480,
 	.height = 272,
@@ -531,6 +557,7 @@ static struct {
 	{ "X710",	&wsvga_x710, CTP_ITE7260 },
 
 #ifndef CONFIG_ANDROID
+	{ "H43",	&hvga_h43,   0 },
 	{ "P43",	&hvga_p43,   0 },
 	{ "W35",	&qvga_w35,   0 },
 #endif
