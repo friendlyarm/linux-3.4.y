@@ -1129,11 +1129,13 @@ static void pl011_stop_tx(struct uart_port *port)
 	pl011_dma_tx_stop(uap);
 }
 
+static void pl011_tx_chars(struct uart_amba_port *uap, bool from_irq);
 static void pl011_start_tx(struct uart_port *port)
 {
 	struct uart_amba_port *uap = (struct uart_amba_port *)port;
 
 	if (!pl011_dma_tx_start(uap)) {
+		pl011_tx_chars(uap, false);
 		uap->im |= UART011_TXIM;
 		writew(uap->im, uap->port.membase + UART011_IMSC);
 	}
@@ -1182,16 +1184,29 @@ static void pl011_rx_chars(struct uart_amba_port *uap)
 	spin_lock(&uap->port.lock);
 }
 
-static void pl011_tx_chars(struct uart_amba_port *uap)
+static bool pl011_tx_char(struct uart_amba_port *uap, unsigned char c,
+		bool from_irq)
+{
+	if (unlikely(!from_irq) &&
+			readw(uap->port.membase + UART01x_FR) & UART01x_FR_TXFF)
+		return false; /* unable to transmit character */
+
+	writew(c, uap->port.membase + UART01x_DR);
+	uap->port.icount.tx++;
+
+	return true;
+}
+
+static void pl011_tx_chars(struct uart_amba_port *uap, bool from_irq)
 {
 	struct circ_buf *xmit = &uap->port.state->xmit;
-	int count;
+	int count = uap->fifosize >> 1 ;
 
 	if (uap->port.x_char) {
-		writew(uap->port.x_char, uap->port.membase + UART01x_DR);
-		uap->port.icount.tx++;
+		if (!pl011_tx_char(uap, uap->port.x_char, from_irq))
+			return;
 		uap->port.x_char = 0;
-		return;
+		--count;
 	}
 	if (uart_circ_empty(xmit) || uart_tx_stopped(&uap->port)) {
 		pl011_stop_tx(&uap->port);
@@ -1202,14 +1217,15 @@ static void pl011_tx_chars(struct uart_amba_port *uap)
 	if (pl011_dma_tx_irq(uap))
 		return;
 
-	count = uap->fifosize >> 1;
 	do {
-		writew(xmit->buf[xmit->tail], uap->port.membase + UART01x_DR);
-		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
-		uap->port.icount.tx++;
-		if (uart_circ_empty(xmit))
+		if (likely(from_irq) && count-- == 0)
 			break;
-	} while (--count > 0);
+
+		if (!pl011_tx_char(uap, xmit->buf[xmit->tail], from_irq))
+			break;
+
+		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
+	} while (!uart_circ_empty(xmit));
 
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
 		uart_write_wakeup(&uap->port);
@@ -1256,7 +1272,7 @@ static irqreturn_t pl011_int(int irq, void *dev_id)
 		do {
 			writew(status & ~(UART011_TXIS|UART011_RTIS|
 					  UART011_RXIS),
-			       uap->port.membase + UART011_ICR);
+			uap->port.membase + UART011_ICR);
 
 			if (status & (UART011_RTIS|UART011_RXIS)) {
 				if (pl011_dma_rx_running(uap))
@@ -1265,10 +1281,10 @@ static irqreturn_t pl011_int(int irq, void *dev_id)
 					pl011_rx_chars(uap);
 			}
 			if (status & (UART011_DSRMIS|UART011_DCDMIS|
-				      UART011_CTSMIS|UART011_RIMIS))
+					UART011_CTSMIS|UART011_RIMIS))
 				pl011_modem_status(uap);
 			if (status & UART011_TXIS)
-				pl011_tx_chars(uap);
+				pl011_tx_chars(uap, true);
 
 			if (pass_counter-- == 0) {
 				if (uap->interrupt_may_hang)
@@ -1444,7 +1460,6 @@ static int pl011_startup(struct uart_port *port)
 			writew(0xff, uap->port.membase + UART011_MIS);
 		writew(0, uap->port.membase + uap->lcrh_tx);
 	}
-	writew(0, uap->port.membase + UART01x_DR);
 	while (readw(uap->port.membase + UART01x_FR) & UART01x_FR_BUSY)
 		barrier();
 
@@ -1501,11 +1516,11 @@ static int pl011_startup(struct uart_port *port)
 static void pl011_shutdown_channel(struct uart_amba_port *uap,
 					unsigned int lcrh)
 {
-      unsigned long val;
+	unsigned long val;
 
-      val = readw(uap->port.membase + lcrh);
-      val &= ~(UART01x_LCRH_BRK | UART01x_LCRH_FEN);
-      writew(val, uap->port.membase + lcrh);
+	val = readw(uap->port.membase + lcrh);
+	val &= ~(UART01x_LCRH_BRK | UART01x_LCRH_FEN);
+	writew(val, uap->port.membase + lcrh);
 }
 
 static void pl011_shutdown(struct uart_port *port)
