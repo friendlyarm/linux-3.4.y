@@ -987,4 +987,26 @@ config TOUCHSCREEN_IT7260_SINGLE
 
 	  If unsure, say N.
 
+config TOUCHSCREEN_HIMAX
+	tristate "Himax touchscreen support"
+	depends on I2C
+	help
+	  Say Y here if you have a Himax touchscreen and your
+	  board-specific setup code includes that in its table
+	  of I2C devices.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called himax_ts.
+
+config TOUCHSCREEN_HIMAX_SINGLE
+	bool "Disable MULTI-Touch Mode"
+	depends on TOUCHSCREEN_HIMAX
+	default n
+	help
+	  Say Y here to disable multi-touch mode for Debian, Ubuntu, QT.
+
+	  If unsure, say N.
+
 endif

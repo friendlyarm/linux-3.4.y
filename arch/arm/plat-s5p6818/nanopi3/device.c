@@ -547,6 +547,15 @@ static struct i2c_board_info __initdata goodix_i2c_bdi = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_HIMAX)
+#define	HIMAX_I2C_BUS		(2)
+
+static struct i2c_board_info __initdata himax_i2c_bdi = {
+	I2C_BOARD_INFO("hx8528-a", (0x90 >> 1)),
+	.irq = PB_PIO_IRQ(CFG_IO_TOUCH_IRQ),
+};
+#endif
+
 #if defined(CONFIG_TOUCHSCREEN_IT7260)
 #define	IT7260_I2C_BUS		(2)
 
@@ -1810,6 +1819,11 @@ void __init nxp_board_devs_register(void)
 	goodix_pdata.screen_max_y = lcd->height;
 	i2c_register_board_info(GOODIX_I2C_BUS, &goodix_i2c_bdi, 1);
 	printk("plat: goodix: irq=%d (%d)\n", PB_PIO_IRQ(CFG_IO_TOUCH_IRQ), CFG_IO_TOUCH_IRQ);
+#endif
+
+#if defined(CONFIG_TOUCHSCREEN_HIMAX)
+	printk("plat: add touch(himax) device\n");
+	i2c_register_board_info(HIMAX_I2C_BUS, &himax_i2c_bdi, 1);
 #endif
 
 #if defined(CONFIG_TOUCHSCREEN_IT7260)

@@ -23,6 +23,7 @@ enum {
 	CTP_FT5X06,
 	CTP_ITE7260,
 	CTP_GOODIX,
+	CTP_HIMAX,
 	CTP_MAX
 };
 

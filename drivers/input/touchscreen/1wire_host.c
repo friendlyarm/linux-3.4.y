@@ -735,6 +735,7 @@ static int __init onewire_dev_init(void)
 
 #if defined(CONFIG_TOUCHSCREEN_GOODIX) || \
 	defined(CONFIG_TOUCHSCREEN_FT5X0X) || \
+	defined(CONFIG_TOUCHSCREEN_HIMAX)  || \
 	defined(CONFIG_TOUCHSCREEN_IT7260)
 	ret = board_get_ctp();
 	if (ret != CTP_NONE && ret != CTP_AUTO) {
