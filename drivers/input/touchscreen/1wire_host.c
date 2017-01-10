@@ -52,6 +52,7 @@
 
 #define SAMPLE_BPS		9600
 
+#define REQ_KEY			0x30U
 #define REQ_TS			0x40U
 #define REQ_INFO		0x60U
 
@@ -69,8 +70,47 @@ extern void onewire_input_report(int x, int y, int pressed);
 static DECLARE_WAIT_QUEUE_HEAD(ts_waitq);
 static int ts_ready;
 static int has_ts_data = 1;
+static int has_key_data = 0;
 static unsigned ts_status;
 static int resumed = 0;
+
+static struct input_dev *ts_if = NULL;
+static int key_codes[] = { 172, KEY_MENU, KEY_BACK };
+static int last_key = 0;
+
+static void ts_if_report_key(int key) {
+	int changed = last_key ^ key;
+	int down = (key > last_key);
+	int i;
+
+	if (!changed || !ts_if)
+		return;
+
+	last_key = key;
+
+	for (i = 0; i < ARRAY_SIZE(key_codes); i++) {
+		if (changed & (1 << i)) {
+			//printk("ts-if: %02x, %d [%d] ... %s\n",
+			//              changed, i, key_codes[i], down ? "down" : "UP");
+			input_report_key(ts_if, key_codes[i], down);
+		}
+	}
+
+	input_sync(ts_if);
+	return;
+}
+
+void register_ts_if_dev(struct input_dev *dev) {
+	int i;
+
+	set_bit(EV_KEY, dev->evbit);
+
+	for (i = 0; i < ARRAY_SIZE(key_codes); i++) {
+		input_set_capability(dev, EV_KEY, key_codes[i]);
+	}
+
+	ts_if = dev;
+}
 
 static inline void notify_ts_data(unsigned x, unsigned y, unsigned down)
 {
@@ -216,6 +256,11 @@ static inline void notify_info_data(unsigned char _lcd_type,
 	if (_lcd_type != 0xFF) {
 		lcd_type = _lcd_type;
 		firmware_ver = ver_year * 100 + week;
+
+		/* Currently only S702 has hard key */
+		if (lcd_type == 24) {
+			has_key_data = 1;
+		}
 	}
 }
 
@@ -316,7 +361,11 @@ static void one_wire_session_complete(unsigned char req, unsigned int res)
 		return;
 	}
 
-	switch(req) {
+	switch (req) {
+		case REQ_KEY:
+			ts_if_report_key(p[1]);
+			break;
+
 		case REQ_TS:
 			{
 				unsigned short x,y;
@@ -521,6 +570,8 @@ void one_wire_timer_proc(unsigned long v)
 	} else if (backlight_req) {
 		req = backlight_req;
 		backlight_req = 0;
+	} else if (has_key_data) {
+		req = REQ_KEY;
 	} else if (has_ts_data) {
 		req = REQ_TS;
 	} else {

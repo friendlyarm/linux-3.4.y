@@ -23,6 +23,7 @@
 #define S3CFB_VRES		480		/* line cnt       y resolution */
 extern void nanopi2_get_lcd_res(int *w, int *h);
 extern void nanopi3_get_lcd_res(int *w, int *h);
+extern void register_ts_if_dev(struct input_dev *dev);
 
 #define S3C_TSVERSION	0x0101
 #define DEBUG_LVL		KERN_DEBUG
@@ -139,6 +140,8 @@ static int __init dev_init(void)
 		input_free_device(input_dev);
 		return ret;
 	}
+
+	register_ts_if_dev(input_dev);
 
 	printk (DEVICE_NAME"\tinitialized\n");
 	return ret;
