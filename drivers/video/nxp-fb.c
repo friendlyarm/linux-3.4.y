@@ -642,7 +642,7 @@ static void nxp_fb_setup_info(struct fb_info *info)
 
 	/* other palette & fixed */
 	info->pseudo_palette  = &par->pseudo_pal;
-	info->fix.smem_len    = x_v * y_v * (bpp >> 3);
+	info->fix.smem_len    = PAGE_ALIGN(x_v * y_v * (bpp >> 3));
 	info->fix.line_length = (info->var.xres * info->var.bits_per_pixel) >> 3;
 	switch (bpp) {
 		case 32:
