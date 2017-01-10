@@ -331,6 +331,7 @@ static struct input_dev *himax_ts_init_input(struct himax_ts_priv *priv)
 	set_bit(ABS_MT_WIDTH_MAJOR, input->absbit);
 	set_bit(ABS_MT_POSITION_X, input->absbit);
 	set_bit(ABS_MT_POSITION_Y, input->absbit);
+	set_bit(INPUT_PROP_DIRECT, input->propbit);
 
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, HX_MAX_X, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, HX_MAX_Y, 0, 0);
