@@ -933,13 +933,35 @@ config TOUCHSCREEN_SMAC
 	  If unsure, say N.
 
 config TOUCHSCREEN_GOODIX
-        tristate "GOODIX touchscreen"
-        depends on I2C
-        default n
-        help
-          Say Y here if you have the GOODIX touchscreen.
+	tristate "GOODIX touchscreen"
+	depends on I2C
+	default n
+	help
+	  Say Y here if you have the GOODIX touchscreen.
 
-          If unsure, say N.
+	  If unsure, say N.
+
+choice
+depends on TOUCHSCREEN_GOODIX
+prompt "Select Touch Protocol"
+default TOUCHSCREEN_GOODIX_MT_SLOT
+
+config  TOUCHSCREEN_GOODIX_MT_SYNC
+	bool "Multi-touch Protocol A"
+	help
+	  This enables the stateless type A protocol for QT + tslib.
+
+config  TOUCHSCREEN_GOODIX_MT_SLOT
+	bool "Multi-touch Protocol B"
+	help
+	  This enables the stateful type B slot protocol for Android.
+
+config  TOUCHSCREEN_GOODIX_SINGLE
+	bool "Single-touch Protocol"
+	help
+	  This disables multi-touch mode for Debian (xserver-xorg-input-evdev).
+
+endchoice
 
 config TOUCHSCREEN_1WIRE
 	tristate "1-Wire host and Touch Screen Driver"

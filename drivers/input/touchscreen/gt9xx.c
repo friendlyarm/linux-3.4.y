@@ -372,7 +372,7 @@ static void gtp_touch_down(struct goodix_ts_data* ts, s32 id, s32 x, s32 y, s32 
 
 #if GTP_ICS_SLOT_REPORT
     input_mt_slot(ts->input_dev, id);
-    input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, id);
+    input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, true);
     input_report_abs(ts->input_dev, ABS_MT_POSITION_X, x);
     input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, y);
     input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, w);
@@ -402,10 +402,11 @@ static void gtp_touch_up(struct goodix_ts_data* ts, s32 id)
 {
 #if GTP_ICS_SLOT_REPORT
     input_mt_slot(ts->input_dev, id);
-    input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, -1);
+    input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, false);
     GTP_DEBUG("Touch id[%2d] release!", id);
 #else
     input_report_key(ts->input_dev, BTN_TOUCH, 0);
+    input_mt_sync(ts->input_dev);
 #endif
 }
 
@@ -909,7 +910,15 @@ static void goodix_ts_work_func(struct work_struct *work)
             else
         #endif
             {
+#if defined(CONFIG_TOUCHSCREEN_GOODIX_SINGLE)
+                input_report_abs(ts->input_dev, ABS_X, input_x);
+                input_report_abs(ts->input_dev, ABS_Y, input_y);
+                input_report_abs(ts->input_dev, ABS_PRESSURE, input_w);
+                input_report_key(ts->input_dev, BTN_TOUCH, 1);
+                break;
+#else
                 gtp_touch_down(ts, id, input_x, input_y, input_w);
+#endif
             }
         }
     }
@@ -927,7 +936,12 @@ static void goodix_ts_work_func(struct work_struct *work)
     #endif
         {
             GTP_DEBUG("Touch Release!");
+#if defined(CONFIG_TOUCHSCREEN_GOODIX_SINGLE)
+            input_report_abs(ts->input_dev, ABS_PRESSURE, 0);
+            input_report_key(ts->input_dev, BTN_TOUCH, 0);
+#else
             gtp_touch_up(ts, 0);
+#endif
         }
     }
 
@@ -1789,9 +1803,12 @@ static s8 gtp_request_input_dev(struct goodix_ts_data *ts)
         return -ENOMEM;
     }
 
-    ts->input_dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS) ;
+    ts->input_dev->evbit[0] =
+        BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+
 #if GTP_ICS_SLOT_REPORT
-    input_mt_init_slots(ts->input_dev, 16);     // in case of "out of memory"
+    /* in case of "out of memory" */
+    input_mt_init_slots(ts->input_dev, 10);
 #else
     ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 #endif
@@ -1812,11 +1829,22 @@ static s8 gtp_request_input_dev(struct goodix_ts_data *ts)
     GTP_SWAP(ts->abs_x_max, ts->abs_y_max);
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_GOODIX_SINGLE)
+    set_bit(ABS_X, ts->input_dev->absbit);
+    set_bit(ABS_Y, ts->input_dev->absbit);
+    set_bit(ABS_PRESSURE, ts->input_dev->absbit);
+    set_bit(BTN_TOUCH, ts->input_dev->keybit);
+
+    input_set_abs_params(ts->input_dev, ABS_X, 0, ts->abs_x_max, 0, 0);
+    input_set_abs_params(ts->input_dev, ABS_Y, 0, ts->abs_y_max, 0, 0);
+    input_set_abs_params(ts->input_dev, ABS_PRESSURE, 0, 255, 0, 0);
+#else
     input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
     input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, 255, 0, 0);
+#endif
 
     ts->input_dev->name = goodix_ts_name;
     ts->input_dev->phys = goodix_input_phys;
@@ -3003,7 +3031,7 @@ static void gtp_esd_check_func(struct work_struct *work)
 				msleep(20);
 				gtp_power_switch(ts->client, 1);
 				msleep(20);
-		#endif				
+		#endif
                 gtp_esd_recovery(ts->client);
             }
         }
