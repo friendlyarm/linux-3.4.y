@@ -145,13 +145,13 @@ s32 gtp_i2c_read(struct i2c_client *client, u8 *buf, s32 len)
 	msgs[1].buf   = &buf[GTP_ADDR_LENGTH];
 	//msgs[1].scl_rate = 300 * 1000;
 
-	while (retries < 5) {
+	while (retries < 3) {
 		ret = i2c_transfer(client->adapter, msgs, 2);
 		if (ret == 2) break;
 		retries++;
 	}
 
-	if ((retries >= 5)) {
+	if ((retries >= 3)) {
 #if GTP_COMPATIBLE_MODE
 		struct goodix_ts_data *ts = i2c_get_clientdata(client);
 #endif
@@ -1680,17 +1680,31 @@ static s8 gtp_i2c_test(struct i2c_client *client)
 
     GTP_DEBUG_FUNC();
 
-    while(retry++ < 5)
+    while (retry++ < 3)
     {
         ret = gtp_i2c_read(client, test, 3);
-        if (ret > 0)
-        {
+        if (ret > 0) {
             return ret;
         }
         GTP_ERROR("GTP i2c test failed time %d.",retry);
         msleep(10);
     }
     return ret;
+}
+
+/*******************************************************
+Function:
+    Request gpio(INT & RST) ports.
+Input:
+    ts: private data.
+Output:
+    None.
+*******************************************************/
+static void gtp_free_io_port(struct goodix_ts_data *ts)
+{
+	GTP_GPIO_FREE(gtp_int_gpio);
+	if (gpio_is_valid(gtp_rst_gpio))
+		GTP_GPIO_FREE(gtp_rst_gpio);
 }
 
 /*******************************************************
@@ -1710,7 +1724,7 @@ static s8 gtp_request_io_port(struct goodix_ts_data *ts)
 	ret = GTP_GPIO_REQUEST(gtp_int_gpio, "GTP INT IRQ");
 	if (ret < 0) {
 		GTP_ERROR("Failed to request GPIO:%d, ERRNO:%d", (s32)gtp_int_gpio, ret);
-		ret = -ENODEV;
+		return -ENODEV;
 	} else {
 		GTP_GPIO_AS_INT(gtp_int_gpio);
 		ts->client->irq = gpio_to_irq(gtp_int_gpio);
@@ -1720,6 +1734,7 @@ static s8 gtp_request_io_port(struct goodix_ts_data *ts)
 		ret = GTP_GPIO_REQUEST(gtp_rst_gpio, "GTP RST PORT");
 		if (ret < 0) {
 			GTP_ERROR("Failed to request GPIO:%d, ERRNO:%d",(s32)gtp_rst_gpio,ret);
+			GTP_GPIO_FREE(gtp_int_gpio);
 			ret = -ENODEV;
 		}
 
@@ -1727,12 +1742,6 @@ static s8 gtp_request_io_port(struct goodix_ts_data *ts)
 	}
 
 	gtp_reset_guitar(ts->client, 20);
-
-	if (ret < 0) {
-		GTP_GPIO_FREE(gtp_int_gpio);
-		if (gpio_is_valid(gtp_rst_gpio))
-			GTP_GPIO_FREE(gtp_rst_gpio);
-	}
 
 	return ret;
 }
@@ -1763,7 +1772,6 @@ static s8 gtp_request_irq(struct goodix_ts_data *ts)
     {
         GTP_ERROR("Request IRQ failed!ERRNO:%d.", ret);
         GTP_GPIO_AS_INPUT(gtp_int_gpio);
-        GTP_GPIO_FREE(gtp_int_gpio);
 
         hrtimer_init(&ts->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
         ts->timer.function = goodix_ts_timer_handler;
@@ -2498,6 +2506,10 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	ret = gtp_i2c_test(client);
 	if (ret < 0) {
 		GTP_ERROR("I2C communication ERROR!");
+		gtp_free_io_port(ts);
+		i2c_set_clientdata(client, NULL);
+		kfree(ts);
+		return -ENODEV;
 	}
 
 	ret = gtp_read_version(client, &version_info);
@@ -2591,7 +2603,6 @@ static int goodix_ts_remove(struct i2c_client *client)
 	if (ts) {
 		if (ts->use_irq) {
 			GTP_GPIO_AS_INPUT(gtp_int_gpio);
-			GTP_GPIO_FREE(gtp_int_gpio);
 			free_irq(client->irq, ts);
 		} else {
 			hrtimer_cancel(&ts->timer);
@@ -2599,6 +2610,7 @@ static int goodix_ts_remove(struct i2c_client *client)
 	}
 
 	GTP_INFO("GTP driver removing...");
+	gtp_free_io_port(ts);
 	i2c_set_clientdata(client, NULL);
 	input_unregister_device(ts->input_dev);
 	kfree(ts);
