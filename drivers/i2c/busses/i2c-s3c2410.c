@@ -331,7 +331,7 @@ static int i2c_s3c_irq_nextbyte(struct s3c24xx_i2c *i2c, unsigned long iicstat)
 		    !(i2c->msg->flags & I2C_M_IGNORE_NAK)) {
 			/* ack was not received... */
 
-			pr_err("i2c-nxp.%d: ack was not received\n",i2c->pdata->bus_num);
+			pr_debug("i2c-nxp.%d: ack was not received\n",i2c->pdata->bus_num);
 			s3c24xx_i2c_stop(i2c, -ENXIO);
 			goto out_ack;
 		}
@@ -583,7 +583,7 @@ static int s3c24xx_i2c_doxfer(struct s3c24xx_i2c *i2c,
 		dump_i2c_register(i2c);
 		ret = -ETIMEDOUT;
 	} else if (ret != num) {
-		pr_err("i2c->nxp.%d: incomplete xfer (%d)\n", i2c->pdata->bus_num, ret);
+		pr_debug("i2c-nxp.%d: incomplete xfer (%d)\n", i2c->pdata->bus_num, ret);
 		dump_i2c_register(i2c);
 	}
 

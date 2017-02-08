@@ -337,14 +337,14 @@ static irqreturn_t i2c_irq_thread(int irqno, void *dev_id)
 
 	/* Arbitration Check. */
 	if ((_ARBITSTAT((void *)base) != 0)) {
-		pr_err("Fail, arbit i2c.%d  addr [0x%02x] data[0x%02x], trans[%2d:%2d]\n",
+		pr_debug("Fail, arbit i2c.%d  addr [0x%02x] data[0x%02x], trans[%2d:%2d]\n",
 			par->hw.port, (msg->addr<<1), par->pre_data, cnt, len);
 		par->trans_status = I2C_TRANS_ERR;
 		goto __irq_end;
 	}
 
 	if (par->request_ack && _ACKSTAT((void *)base)) {
-		pr_err("Fail, noack i2c.%d addr [0x%02x] data[0x%02x], trans[%2d:%2d]\n",
+		pr_debug("Fail, noack i2c.%d addr [0x%02x] data[0x%02x], trans[%2d:%2d]\n",
 			par->hw.port, (msg->addr<<1), par->pre_data, cnt, len);
 		par->trans_status = I2C_TRANS_ERR;
 		goto __irq_end;
@@ -567,7 +567,7 @@ static int nxp_i2c_algo_xfer(struct i2c_adapter *adapter, struct i2c_msg *msgs, 
 			if (ret == len)
 				break;
 			udelay(delay);
-			pr_err("i2c.%d addr 0x%02x (try:%d)\n",
+			pr_debug("i2c.%d addr 0x%02x (try:%d)\n",
 				par->hw.port, tmsg->addr<<1, adapter->retries-i+1);
 		}
 
@@ -587,7 +587,7 @@ static int nxp_i2c_algo_xfer(struct i2c_adapter *adapter, struct i2c_msg *msgs, 
 	if (ret == len)
 		return num;
 
-	pr_err("Error: i2c.%d, addr:%02x, trans len:%d(%d), try:%d\n",
+	pr_debug("Error: i2c.%d, addr:%02x, trans len:%d(%d), try:%d\n",
 		par->hw.port, (msgs->addr<<1), ret, len, adapter->retries);
 
 	return ret;
