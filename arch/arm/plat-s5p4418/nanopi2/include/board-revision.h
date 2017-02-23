@@ -74,5 +74,14 @@ static inline int board_with_rtl8211(void) {
 	return !(board_is_nanopi() || board_is_S2());
 }
 
+static inline int board_get_ads7846_CS(void) {
+	if (board_is_nanopi())
+		return (PAD_GPIO_C + 13);
+	else if (board_is_fire() || board_is_M2() || board_is_M2A() || board_is_S2())
+		return (PAD_GPIO_B + 26);
+	else
+		return -1;
+}
+
 #endif /* __BOARD_REVISION_H__ */
 

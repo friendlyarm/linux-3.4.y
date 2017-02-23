@@ -12,6 +12,8 @@
 #include <mach/devices.h>
 #include <mach/soc.h>
 
+#include <board-revision.h>
+
 #define DRVNAME "ads7846_device"
 
 #ifdef CONFIG_MATRIX_ADS7846_MODULE
@@ -57,8 +59,8 @@ static int ads7846_device_spi_device_register(struct spi_board_info *spi)
 }
 #endif
 
-#define ADS_CS		(PAD_GPIO_C+13)
-#define ADS_IRQ		(PAD_GPIO_B+27)
+#define ADS_IRQ		(PAD_GPIO_B + 27)
+static int ADS_CS = -1;
 
 static int ads7846_get_pendown_state(void)
 {
@@ -126,8 +128,13 @@ static struct spi_board_info ads7846_boardinfo __initdata = {
 	.chip_select     = 1,           /* Note> set chip select num, must be smaller than spi cs_num */
 	.controller_data = &spi0_ads7846_info,
 };
+
 static int __init ads7846_dev_init(void)
-{	
+{
+	ADS_CS = board_get_ads7846_CS();
+	if (ADS_CS < 0)
+		return -ENODEV;
+
 	ads7846_device_spi_device_register(&ads7846_boardinfo);
 	return 0;
 }
@@ -137,7 +144,7 @@ static void __exit ads7846_dev_exit(void)
 	if (spi_device) {
 		if (spi_device->master->cleanup) {
 			spi_device->master->cleanup(spi_device);
-		}	
+		}
 		device_del(&spi_device->dev);
 		kfree(spi_device);
 	}

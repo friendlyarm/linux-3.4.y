@@ -1674,6 +1674,7 @@ int board_get_revision(void)
 {
 	return system_rev;
 }
+EXPORT_SYMBOL(board_get_revision);
 
 static void __init board_hwrev_init(void)
 {

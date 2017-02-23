@@ -55,5 +55,12 @@ static inline int board_with_gmac_eth(void) {
 	return !board_is_S3();
 }
 
+static inline int board_get_ads7846_CS(void) {
+	if (board_is_M3())
+		return (PAD_GPIO_B + 26);
+	else
+		return -1;
+}
+
 #endif /* __BOARD_REVISION_H__ */
 
