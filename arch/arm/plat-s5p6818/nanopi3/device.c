@@ -622,6 +622,13 @@ static struct i2c_board_info __initdata pcf8591_i2c_bdi = {
 };
 #endif
 
+#if defined(CONFIG_MATRIX_ADC)
+static struct platform_device iio_adc_device = {
+	.name		= "iio_adc",
+	.id			= -1,
+};
+#endif
+
 /*------------------------------------------------------------------------------
  * Keypad platform device
  */
@@ -1834,6 +1841,11 @@ void __init nxp_board_devs_register(void)
 #if defined(CONFIG_TOUCHSCREEN_1WIRE)
 	printk("plat: add onewire ts device\n");
 	platform_device_register(&onewire_device);
+#endif
+
+#if defined(CONFIG_MATRIX_ADC)
+	printk("plat: add iio adc device\n");
+	platform_device_register(&iio_adc_device);
 #endif
 
 #if defined(CONFIG_SENSORS_MMA865X) || defined(CONFIG_SENSORS_MMA865X_MODULE)

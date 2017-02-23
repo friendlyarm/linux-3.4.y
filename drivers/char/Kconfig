@@ -665,5 +665,11 @@ config MATRIX_IR_RECV
 	---help---
 	  Device info for Matrix ir receiver.
 
+config MATRIX_ADC
+	tristate "S5P4418/6818 ADC driver"
+	default m
+	---help---
+	  Driver for ADC input of FriendlyARM S5P4418/6818 boards.
+
 endmenu
 
