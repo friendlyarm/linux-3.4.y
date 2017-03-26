@@ -567,6 +567,12 @@ static struct i2c_board_info __initdata it7260_i2c_bdi = {
 
 #if defined(CONFIG_TOUCHSCREEN_1WIRE)
 #include <linux/platform_data/touchscreen-one-wire.h>
+#define	ONEWIRE_I2C_BUS		(2)
+
+static struct i2c_board_info __initdata onewire_i2c_bdi = {
+	I2C_BOARD_INFO("ONEWIRE", (0x5e>>1)),
+	.irq = PB_PIO_IRQ(CFG_IO_TOUCH_IRQ),
+};
 
 static struct ts_onewire_platform_data onewire_ts_pdata = {
 	.timer_irq	= IRQ_PHY_PWM_INT3,
@@ -1841,6 +1847,7 @@ void __init nxp_board_devs_register(void)
 
 #if defined(CONFIG_TOUCHSCREEN_1WIRE)
 	printk("plat: add onewire ts device\n");
+	i2c_register_board_info(ONEWIRE_I2C_BUS, &onewire_i2c_bdi, 1);
 	platform_device_register(&onewire_device);
 #endif
 

@@ -29,6 +29,8 @@ extern void register_ts_if_dev(struct input_dev *dev);
 #define DEBUG_LVL		KERN_DEBUG
 
 static struct input_dev *input_dev;
+static int abs_x[2] = { 0, 4095 };
+static int abs_y[2] = { 0, 4095 };
 static char phys[] = "input(ts)";
 
 #define DEVICE_NAME		"ts-if"
@@ -46,6 +48,20 @@ void onewire_input_report(int x, int y, int pressed)
 		input_report_key(input_dev, BTN_TOUCH, 0);
 		input_report_abs(input_dev, ABS_PRESSURE, 0);
 		input_sync(input_dev);
+	}
+}
+
+void onewire_input_set_params(int min_x, int max_x, int min_y, int max_y)
+{
+	abs_x[0] = min_x;
+	abs_x[1] = max_x;
+
+	abs_y[0] = min_y;
+	abs_y[1] = max_y;
+
+	if (input_dev) {
+		input_set_abs_params(input_dev, ABS_X, min_x, max_x, 0, 0);
+		input_set_abs_params(input_dev, ABS_Y, min_y, max_y, 0, 0);
 	}
 }
 #endif
@@ -107,16 +123,16 @@ static int __init dev_init(void)
 	if (!height)
 		height = S3CFB_VRES;
 
+#ifndef CONFIG_AUTO_REPORT_1WIRE_INPUT
+	abs_x[1] = width;
+	abs_y[1] = height;
+#endif
+
 	input_dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 	input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 
-#ifdef CONFIG_AUTO_REPORT_1WIRE_INPUT
-	input_set_abs_params(input_dev, ABS_X, 0, 4095, 0, 0);
-	input_set_abs_params(input_dev, ABS_Y, 0, 4095, 0, 0);
-#else
-	input_set_abs_params(input_dev, ABS_X, 0, width, 0, 0);
-	input_set_abs_params(input_dev, ABS_Y, 0, height, 0, 0);
-#endif
+	input_set_abs_params(input_dev, ABS_X, abs_x[0], abs_x[1], 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, abs_y[0], abs_y[1], 0, 0);
 	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 1, 0, 0);
 
 	input_dev->name = "fa_ts_input";

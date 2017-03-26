@@ -12,6 +12,8 @@
  * Copyright (c) 2010 FriendlyARM Guangzhou CO., LTD.  <http://www.arm9.net>
  *
  * ChangeLog
+ * 2017-03-23: Support for I2C interface
+ *
  * 2015-12-23: Support for s5p4418
  *
  * 2015-06-23: Uses CH2 and legacy PWM interface
@@ -42,6 +44,7 @@
 #include <linux/clk.h>
 #include <linux/gpio.h>
 #include <linux/pwm.h>
+#include <linux/i2c.h>
 
 #include <linux/platform_data/touchscreen-one-wire.h>
 #include <linux/platform_data/ctouch.h>
@@ -56,12 +59,27 @@
 #define REQ_TS			0x40U
 #define REQ_INFO		0x60U
 
+struct onewire_ts_priv {
+	struct i2c_client *client;
+	struct workqueue_struct *queue;
+	struct work_struct work;
+	struct mutex mutex;
+	int sample_delay_ms;
+	int irq;
+};
+
 /* Driver data */
+static int bus_type = -1;
+static struct onewire_ts_priv *onewire_priv;
 static struct ts_onewire_platform_data *pdata;
 static struct pwm_device *pwm;
 
 #ifdef CONFIG_AUTO_REPORT_1WIRE_INPUT
+static int invert_x, invert_y, swap_xy;
+static int abs_x[2], abs_y[2];
+
 extern void onewire_input_report(int x, int y, int pressed);
+extern void onewire_input_set_params(int min_x, int max_x, int min_y, int max_y);
 #endif
 
 //---------------------------------------------------------
@@ -114,7 +132,7 @@ void register_ts_if_dev(struct input_dev *dev) {
 
 static inline void notify_ts_data(unsigned x, unsigned y, unsigned down)
 {
-	if (!down && !(ts_status &(1U << 31))) {
+	if (!down && !(ts_status & (1U << 31))) {
 		// up repeat, give it up
 		return;
 	}
@@ -124,6 +142,14 @@ static inline void notify_ts_data(unsigned x, unsigned y, unsigned down)
 	wake_up_interruptible(&ts_waitq);
 
 #ifdef CONFIG_AUTO_REPORT_1WIRE_INPUT
+	if (swap_xy)
+		swap(x, y);
+	if (invert_x)
+		x = 4095 - x;
+	if (invert_y)
+		y = 4095 - y;
+	pr_debug("onewire: %d, %d  %s\n", x, y, down ? "down" : "up");
+
 	onewire_input_report(x, y, down);
 #endif
 }
@@ -222,6 +248,10 @@ static ssize_t bl_write(struct file *file, const char *buffer, size_t count, lof
 
 	bl_ready = 0;
 	backlight_req = v + 0x80U;
+
+	if (bus_type == BUS_I2C) {
+		queue_work(onewire_priv->queue, &onewire_priv->work);
+	}
 
 	ret = wait_event_interruptible_timeout(bl_waitq, bl_ready, HZ / 10);
 	if (ret < 0) {
@@ -503,9 +533,6 @@ static struct irqaction timer_for_1wire_irq = {
 	.dev_id  = &timer_for_1wire_irq,
 };
 
-
-static int err_i = 0;
-
 static void start_one_wire_session(unsigned char req)
 {
 	unsigned char crc;
@@ -680,8 +707,6 @@ static int ts_1wire_resume(struct device *dev)
 
 	printk("ts_1wire_resume: \n");
 
-	err_i = 0;
-
 	ret = gpio_request(pdata->gpio, TOUCH_DEVICE_NAME);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to request gpio %d\n", pdata->gpio);
@@ -766,6 +791,243 @@ static inline int ts_proc_init(void) { return 0; }
 
 //---------------------------------------------------------
 
+static int onewire_handle_request(struct i2c_client *client,
+		unsigned char req, unsigned char *buf)
+{
+	unsigned char tx[4];
+	unsigned char crc;
+	int ret;
+
+	struct i2c_msg msgs[] = {
+		{
+			.addr   = client->addr,
+#if defined(CONFIG_ARCH_S5P4418) && \
+   !defined(CONFIG_I2C_NXP_PORT2_GPIO_MODE)
+			.flags  = I2C_M_IGNORE_NAK,
+#else
+			.flags  = 0,
+#endif
+			.len    = 2,
+			.buf    = tx,
+		}, {
+			.addr   = client->addr,
+			.flags  = I2C_M_RD,
+			.len    = 4,
+			.buf    = buf,
+		},
+	};
+
+	crc8_init(crc);
+	crc8(crc, req);
+	tx[0] = req;
+	tx[1] = crc;
+
+	ret = i2c_transfer(client->adapter, &msgs[0], 1);
+	if (ret < 0) {
+		pr_err("onewire: REQ 0x%02x: i2c write error %d\n", req, ret);
+		return ret;
+	}
+
+	if (!buf)
+		return 0;
+
+	ret = i2c_transfer(client->adapter, &msgs[1], 1);
+	if (ret < 0) {
+		pr_err("onewire: REQ 0x%02x: i2c read error %d\n", req, ret);
+		return ret;
+	}
+
+	crc8_init(crc);
+	crc8(crc, buf[0]);
+	crc8(crc, buf[1]);
+	crc8(crc, buf[2]);
+	pr_debug("onewire: resp %02x %02x %02x %02x\n", buf[0], buf[1], buf[2], buf[3]);
+
+	if (crc != buf[3]) {
+		pr_err("onewire: REQ 0x%02X: crc error (%02x <--> %02x)\n",
+				req, crc, buf[3]);
+		total_error++;
+		return -EIO;
+	}
+
+	return 0;
+}
+
+static void onewire_ts_work_func(struct work_struct *work) {
+	struct onewire_ts_priv *priv = container_of(work,
+			struct onewire_ts_priv, work);
+	unsigned char buf[4];
+	unsigned short x,y;
+	unsigned pressed;
+	int ret;
+
+	do {
+		ret = onewire_handle_request(priv->client, REQ_TS, buf);
+		if (!ret) {
+			x =  ((buf[0] >>   4U) << 8U) + buf[1];
+			y =  ((buf[0] &  0xFU) << 8U) + buf[2];
+			pressed = (x != 0xFFFU) && (y != 0xFFFU);
+
+			notify_ts_data(x, y, pressed);
+		}
+
+		/* handle backlight request */
+		if (backlight_req) {
+			onewire_handle_request(priv->client, backlight_req, NULL);
+
+			backlight_req = 0;
+			bl_ready = 1;
+			backlight_init_success = 1;
+			wake_up_interruptible(&bl_waitq);
+		}
+
+		msleep(priv->sample_delay_ms);
+
+	} while (pressed);
+}
+
+static irqreturn_t onewire_ts_isr(int irq, void *dev_id)
+{
+	struct onewire_ts_priv *priv = dev_id;
+
+	last_req = REQ_TS;
+	if (!work_pending(&priv->work)) {
+		queue_work(priv->queue, &priv->work);
+	}
+
+	return IRQ_HANDLED;
+}
+
+static int onewire_identify_chip(struct i2c_client *client)
+{
+	unsigned char id[4];
+
+	if (onewire_handle_request(client, REQ_INFO, id) < 0)
+		return -1;
+
+	notify_info_data(id[0], id[1], id[2]);
+
+	return 0;
+}
+
+static int onewire_ts_probe(struct i2c_client *client,
+		const struct i2c_device_id *idp)
+{
+	struct onewire_ts_priv *priv;
+	unsigned int ctp_id;
+	int ret;
+
+#if defined(CONFIG_TOUCHSCREEN_GOODIX) || \
+	defined(CONFIG_TOUCHSCREEN_FT5X0X) || \
+	defined(CONFIG_TOUCHSCREEN_HIMAX)  || \
+	defined(CONFIG_TOUCHSCREEN_IT7260)
+	ctp_id = board_get_ctp();
+	if (ctp_id != CTP_NONE && ctp_id != CTP_AUTO) {
+		has_ts_data = 0;
+		timer_interval = HZ / 25;
+		goto err_nodev;
+	}
+#endif
+
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
+		goto err_nodev;
+
+	if (onewire_identify_chip(client) < 0)
+		goto err_nodev;
+
+	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
+	if (!priv) {
+		dev_err(&client->dev, "failed to allocate driver data\n");
+		ret = -ENOMEM;
+		goto err_nomem;
+	}
+
+	priv->client = client;
+	priv->irq = client->irq;
+	priv->sample_delay_ms = 12;
+	mutex_init(&priv->mutex);
+	INIT_WORK(&priv->work, onewire_ts_work_func);
+
+	priv->queue = create_singlethread_workqueue("onewire-ts");
+	if (!priv->queue) {
+		ret = -ENOMEM;
+		goto err_wq;
+	}
+
+	ret = request_irq(priv->irq, onewire_ts_isr,
+			IRQ_TYPE_EDGE_FALLING, client->name, priv);
+	if (ret) {
+		dev_err(&client->dev, "failed to request IRQ %d\n", priv->irq);
+		goto err_irq;
+	}
+
+	onewire_priv = priv;
+	dev_set_drvdata(&client->dev, priv);
+
+	/* tell user app (tscal.sh) to do calibrate */
+	total_received = 256;
+
+	bus_type = BUS_I2C;
+	dev_info(&client->dev, "found panel %d, rev %04d\n", lcd_type, firmware_ver);
+
+	return 0;
+
+err_irq:
+	cancel_work_sync(&priv->work);
+	destroy_workqueue(priv->queue);
+
+err_wq:
+	kfree(priv);
+
+err_nomem:
+	dev_err(&client->dev, "probe Onewire touchscreen failed, %d\n", ret);
+	return ret;
+
+err_nodev:
+	/* fallback to 1-wire protocol */
+	return platform_driver_register(&ts_1wire_device_driver);
+}
+
+static int __devexit onewire_ts_remove(struct i2c_client *client) {
+	struct onewire_ts_priv *priv = dev_get_drvdata(&client->dev);
+
+	if (bus_type == BUS_I2C) {
+		if (priv->irq) {
+			free_irq(priv->irq, priv);
+		}
+
+		cancel_work_sync(&priv->work);
+		destroy_workqueue(priv->queue);
+
+		kfree(priv);
+
+		dev_set_drvdata(&client->dev, NULL);
+
+	} else {
+		exitting = 1;
+		platform_driver_unregister(&ts_1wire_device_driver);
+	}
+
+	return 0;
+}
+
+static const struct i2c_device_id onewire_ts_id[] = {
+	{ "ONEWIRE", 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, onewire_ts_id);
+
+static struct i2c_driver onewire_ts_driver = {
+	.driver = {
+		.name = "ONEWIRE-ts",
+	},
+	.probe = onewire_ts_probe,
+	.remove = __devexit_p(onewire_ts_remove),
+	.id_table = onewire_ts_id,
+};
+
+//---------------------------------------------------------
+
 static int __init onewire_dev_init(void)
 {
 	int ret;
@@ -784,18 +1046,7 @@ static int __init onewire_dev_init(void)
 
 	ts_proc_init();
 
-#if defined(CONFIG_TOUCHSCREEN_GOODIX) || \
-	defined(CONFIG_TOUCHSCREEN_FT5X0X) || \
-	defined(CONFIG_TOUCHSCREEN_HIMAX)  || \
-	defined(CONFIG_TOUCHSCREEN_IT7260)
-	ret = board_get_ctp();
-	if (ret != CTP_NONE && ret != CTP_AUTO) {
-		has_ts_data = 0;
-		timer_interval = HZ / 25;
-	}
-#endif
-
-	ret = platform_driver_register(&ts_1wire_device_driver);
+	ret = i2c_add_driver(&onewire_ts_driver);
 	if (ret)
 		goto fail_drv;
 
@@ -811,8 +1062,7 @@ fail_ts:
 
 static void __exit onewire_dev_exit(void)
 {
-	exitting = 1;
-	platform_driver_unregister(&ts_1wire_device_driver);
+	i2c_del_driver(&onewire_ts_driver);
 
 	remove_proc_entry("driver/one-wire-info", NULL);
 
