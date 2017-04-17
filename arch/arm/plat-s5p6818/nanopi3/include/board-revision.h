@@ -25,12 +25,14 @@
 
 /* Board revision list: <PCB3 | PCB2 | PCB1>
  *  0b001 - NanoPC-T3
+ *  0b100 - NanoPC-T3 Trunk
  *  0b011 - Smart6818
  *  0b111 - NanoPi M3
  *  0b010 - NanoPi S3
  */
 #define HWREV_B			0x1
 #define HWREV_C			0x3
+#define HWREV_D			0x4
 #define HWREV_G			0x7
 #define HWREV_H			0x2
 
@@ -41,14 +43,21 @@ extern int board_get_revision(void);
 #define board_is_smart6818()	(board_get_revision() == HWREV_C)
 #define board_is_M3()		(board_get_revision() == HWREV_G)
 #define board_is_S3()		(board_get_revision() == HWREV_H)
+#define board_is_t3trunk()	(board_get_revision() == HWREV_D)
 
+
+static inline int board_with_emmc(void) {
+	return (board_is_nanopc() || board_is_S3() || board_is_smart6818() ||
+			board_is_t3trunk());
+}
 
 static inline int board_with_ap6212(void) {
 	return (board_is_nanopc() || board_is_M3() || board_is_S3());
 }
 
 static inline int board_with_es8316(void) {
-	return (board_is_nanopc() || board_is_M3() || board_is_smart6818());
+	return (board_is_nanopc() || board_is_M3() || board_is_smart6818() ||
+			board_is_t3trunk());
 }
 
 static inline int board_with_gmac_eth(void) {

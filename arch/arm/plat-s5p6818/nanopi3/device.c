@@ -1709,7 +1709,7 @@ void __init nxp_board_devs_register(void)
 
 	board_hwrev_init();
 
-	if (board_is_nanopc() || board_is_smart6818() || board_is_S3()) {
+	if (board_with_emmc()) {
 #ifdef CONFIG_MMC_NXP_CH2
 		board_fixup_dwmci2();
 #endif
@@ -1793,7 +1793,7 @@ void __init nxp_board_devs_register(void)
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
 	if (board_with_es8316()) {
 		printk("plat: add device asoc-es8316\n");
-		if (board_is_nanopc() || board_is_smart6818())
+		if (board_is_nanopc() || board_is_smart6818() || board_is_t3trunk())
 			i2s_dai_data.hp_jack.support = 1;
 		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
 		platform_device_register(&es8316_dai);
