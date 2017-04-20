@@ -254,6 +254,12 @@ config REGULATOR_S5M8767
 	 via I2C bus. S5M8767A have 9 Bucks and 28 LDOs output and
 	 supports DVS mode with 8bits of output voltage control.
 
+config REGULATOR_SPU1705
+	tristate "FriendlyElec SPU1705 regulator driver"
+	depends on I2C
+	help
+	  Say Y here to support the voltage regulators on SPU1705
+
 config REGULATOR_AB3100
 	tristate "ST-Ericsson AB3100 Regulator functions"
 	depends on AB3100_CORE
