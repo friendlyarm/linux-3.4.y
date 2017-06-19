@@ -354,6 +354,7 @@ static int bt_bcm_rfkill_set_block(void *data, bool blocked)
 {
 	struct bt_bcm_info *bcm = data;
 	struct bt_ctl_gpio *btp;
+	int i, cts;
 
 	if (!bcm) {
 		pr_err("bt_bcm: failed to set block for NULL data\n");
@@ -367,17 +368,25 @@ static int bt_bcm_rfkill_set_block(void *data, bool blocked)
 	pr_info("bt_bcm: rfkill set_block %s %s.%d\n",
 		blocked?"Off":"On ", STR_GR(btp->gpio), BIT_NR(btp->gpio));
 
-	msleep(10);
-
 	if (!blocked) {
 		bt_bcm_set_io_val(btp, 1);	/* on */
 		bcm->running = true;
+		msleep(25);
 
-		msleep(20);
 #if (BT_GPIO_WAKE_DEVICE < 0)
-		pr_info("bt_bcm: wake peer by RTS\n");
 		bt_bcm_rts_ctrl(1, 0);
-		msleep(1);
+
+		/* BCM43438 datasheet page 57:
+		 * BTH device drive this line (BT_UART_RTS_N) low indicating
+		 * transport is ready.
+		 */
+		for (i = 0; i < 30; i++) {
+			usleep_range(500, 1000);
+			if (!(cts = gpio_get_value(UART1_CTS_IO_NUM)))
+				break;
+		}
+		pr_info("bt_bcm: wake peer by RTS, %s\n", cts ? "failed" : "ok");
+
 		bt_bcm_rts_ctrl(0, 0);
 #endif
 	} else {
