@@ -1775,12 +1775,12 @@ void __init nxp_board_devs_register(void)
 		bootdev = 0;
 	}
 
-	if (board_is_t3trunk())
-		board_usbhub_init();
+	board_usbhub_init();
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
 	printk("plat: add dynamic frequency (pll.%d)\n", dfs_plat_data.pll_dev);
-	if (board_is_t3trunk()) {
+	if (board_is_t3trunk() || board_is_fire() ||
+			nxp_soc_gpio_get_in_value(CFG_IO_HW_PCBD)) {
 		dfs_plat_data.fixed_voltage = 0;
 		printk("plat: DVFS enabled\n");
 	}
@@ -1804,7 +1804,7 @@ void __init nxp_board_devs_register(void)
 
 #if defined(CONFIG_MMC_DW)
 	printk("plat: boot from mmc.%d\n", bootdev);
-	if (board_is_M3()) {
+	if (board_is_M3() || board_is_fire()) {
 		_dwmci0_add_device();
 		_dwmci1_add_device();
 	} else if (bootdev == 2) {
@@ -1858,7 +1858,7 @@ void __init nxp_board_devs_register(void)
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
 	if (board_with_es8316()) {
 		printk("plat: add device asoc-es8316\n");
-		if (board_is_nanopc() || board_is_smart6818() || board_is_t3trunk())
+		if (board_is_nanopc() || board_is_som6818() || board_is_t3trunk())
 			i2s_dai_data.hp_jack.support = 1;
 		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
 		platform_device_register(&es8316_dai);

@@ -21,51 +21,47 @@
 #define CFG_IO_HW_PCB1	(PAD_GPIO_C + 26)
 #define CFG_IO_HW_PCB2	(PAD_GPIO_C + 27)
 #define CFG_IO_HW_PCB3	(PAD_GPIO_C + 25)
+#define CFG_IO_HW_PCBD	(PAD_GPIO_E + 13)
 
 
 /* Board revision list: <PCB3 | PCB2 | PCB1>
  *  0b001 - NanoPC-T3
  *  0b100 - NanoPC-T3 Trunk
- *  0b011 - Smart6818
+ *  0b101 - NanoPi 3 Fire
+ *  0b110 - SOM6818
  *  0b111 - NanoPi M3
- *  0b010 - NanoPi S3
  */
-#define HWREV_B			0x1
-#define HWREV_C			0x3
-#define HWREV_D			0x4
-#define HWREV_G			0x7
-#define HWREV_H			0x2
-
 
 extern int board_get_revision(void);
 
-#define board_is_nanopc()	(board_get_revision() == HWREV_B)
-#define board_is_smart6818()	(board_get_revision() == HWREV_C)
-#define board_is_M3()		(board_get_revision() == HWREV_G)
-#define board_is_S3()		(board_get_revision() == HWREV_H)
-#define board_is_t3trunk()	(board_get_revision() == HWREV_D)
+#define board_is_nanopc()	(board_get_revision() == 0x01)
+#define board_is_t3trunk()	(board_get_revision() == 0x04)
+#define board_is_fire()		(board_get_revision() == 0x05)
+#define board_is_som6818()	(board_get_revision() == 0x06)
+#define board_is_M3()		(board_get_revision() == 0x07)
+#define board_is_smart6818()	(0)
 
 
 static inline int board_with_emmc(void) {
-	return (board_is_nanopc() || board_is_S3() || board_is_smart6818() ||
+	return (board_is_nanopc() || board_is_som6818() ||
 			board_is_t3trunk());
 }
 
 static inline int board_with_ap6212(void) {
-	return (board_is_nanopc() || board_is_M3() || board_is_S3());
+	return (board_is_nanopc() || board_is_M3());
 }
 
 static inline int board_with_es8316(void) {
-	return (board_is_nanopc() || board_is_M3() || board_is_smart6818() ||
+	return (board_is_nanopc() || board_is_M3() || board_is_som6818() ||
 			board_is_t3trunk());
 }
 
 static inline int board_with_gmac_eth(void) {
-	return !board_is_S3();
+	return 1;
 }
 
 static inline int board_get_ads7846_CS(void) {
-	if (board_is_M3())
+	if (board_is_M3() || board_is_fire())
 		return (PAD_GPIO_B + 26);
 	else
 		return -1;
