@@ -1729,6 +1729,19 @@ static void __init board_hwrev_init(void)
 	printk("plat: board revision %x\n", system_rev);
 }
 
+static void __init board_usbhub_init(void)
+{
+#if defined(CONFIG_USB_EHCI_SYNOPSYS) || defined(CONFIG_USB_OHCI_SYNOPSYS)
+#define CFG_IO_USBHUB_RST		(PAD_GPIO_C + 0)
+
+	printk("plat: reset USB hub\n");
+	nxp_soc_gpio_set_out_value(CFG_IO_USBHUB_RST, 0);
+	nxp_soc_gpio_set_io_dir(CFG_IO_USBHUB_RST, 1);
+	udelay(100);
+	nxp_soc_gpio_set_out_value(CFG_IO_USBHUB_RST, 1);
+#endif
+}
+
 /*------------------------------------------------------------------------------
  * register board platform devices
  */
@@ -1760,6 +1773,8 @@ void __init nxp_board_devices_register(void)
 			adc_tmp_plat_data.priv = 1;
 #endif
 	}
+
+	board_usbhub_init();
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
 	if (nxp_soc_gpio_get_in_value(CFG_IO_HW_PCBD))
