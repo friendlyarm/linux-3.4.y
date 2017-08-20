@@ -126,7 +126,7 @@ const u8 g_DispBusSI[3] = {
  */
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
 static unsigned long dfs_freq_table[][2] = {
-	{ 1400000, 1280000, },
+	{ 1400000, 1260000, },
 	{ 1200000, 1200000, },
 	{ 1000000, 1140000, },
 	{  800000, 1100000, },
@@ -864,6 +864,50 @@ static struct platform_device i2c_device_ch3 = {
 
 static struct platform_device *i2c_devices[] = {
 	&i2c_device_ch3,
+};
+
+#if defined(CONFIG_REGULATOR_SPU1705)
+#include <linux/regulator/spu1705.h>
+
+static struct regulator_consumer_supply dcdc1_supply[] = {
+	{
+		.supply	= "vdd_arm_1.3V",
+	},
+};
+
+static struct regulator_init_data spu1705_dcdc1_data = {
+	.constraints	= {
+		.name		= "DCDC1",
+		.min_uV		=  905000,
+		.max_uV		= 1265000,
+		.always_on	= 1,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE,
+		.state_mem	= {
+			.uV			= 1200000,
+			.mode		= REGULATOR_MODE_STANDBY,
+			.enabled	= 0,
+		},
+	},
+	.num_consumer_supplies	= ARRAY_SIZE(dcdc1_supply),
+	.consumer_supplies	= dcdc1_supply,
+};
+
+static struct spu1705_regulator_subdev spu1705_regulators[] = {
+	{ SPU1705_DCDC1, &spu1705_dcdc1_data, },
+};
+
+struct spu1705_platform_data spu1705_platform_data = {
+	.num_regulators	= ARRAY_SIZE(spu1705_regulators),
+	.regulators		= spu1705_regulators,
+};
+#endif
+
+static struct i2c_board_info __initdata spu1705_i2c_bdi = {
+	I2C_BOARD_INFO("fe-pmu", (0x5a>>1)),
+	.irq = -1,
+#if defined(CONFIG_REGULATOR_SPU1705)
+	.platform_data = &spu1705_platform_data,
+#endif
 };
 #endif /* CONFIG_I2C_NXP_PORT3 */
 
@@ -1777,8 +1821,10 @@ void __init nxp_board_devices_register(void)
 	board_usbhub_init();
 
 #if defined(CONFIG_ARM_NXP_CPUFREQ)
-	if (nxp_soc_gpio_get_in_value(CFG_IO_HW_PCBD))
+	if (nxp_soc_gpio_get_in_value(CFG_IO_HW_PCBD)) {
 		dfs_plat_data.fixed_voltage = 0;
+		printk("plat: DVFS enabled\n");
+	}
 	printk("plat: add dynamic frequency (pll.%d)\n", dfs_plat_data.pll_dev);
 	platform_device_register(&dfs_plat_device);
 #endif
@@ -1842,6 +1888,7 @@ void __init nxp_board_devices_register(void)
 #endif
 	} else {
 #if defined(CONFIG_I2C_NXP_PORT3)
+		i2c_register_board_info(3, &spu1705_i2c_bdi, 1);
 		platform_add_devices(i2c_devices, ARRAY_SIZE(i2c_devices));
 #endif
 	}
