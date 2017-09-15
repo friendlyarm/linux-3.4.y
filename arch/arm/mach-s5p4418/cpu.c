@@ -64,9 +64,19 @@ extern void __init init_consistent_dma_size(unsigned long size);
  * 	cpu initialize and io/memory map.
  * 	procedure: fixup -> map_io -> init_irq -> timer init -> init_machine
  */
-static void __init cpu_fixup(struct tag *tags, char **cmdline, struct meminfo *mi)
+static void __init cpu_fixup(struct tag *tag, char **cmdline, struct meminfo *mi)
 {
 	DBGOUT("%s\n", __func__);
+
+#if defined(CONFIG_PLAT_S5P4418_NANOPI2)
+	for (; tag->hdr.size; tag = tag_next(tag))
+		if (tag->hdr.tag == ATAG_MEM &&
+				tag->u.mem.size >= 0x20000000) {
+			/* keep size passed by bootloader */
+			return;
+		}
+#endif
+
 	/*
 	 * system momory  = system mem size + dma zone size
 	 */
