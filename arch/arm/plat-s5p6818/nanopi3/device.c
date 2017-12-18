@@ -683,6 +683,67 @@ static struct platform_device spdif_trans_dai = {
 };
 #endif
 
+#if defined(CONFIG_SND_CODEC_NULL)
+static struct platform_device snd_null = {
+	.name = "snd-null",
+	.id = -1,
+};
+
+struct nxp_snd_dai_plat_data snd_null_dai_data = {
+	.i2s_ch = 0,
+	.sample_rate = 48000,
+	.pcm_format = SNDRV_PCM_FMTBIT_S16_LE,
+};
+
+static struct platform_device snd_null_dai = {
+	.name = "snd-null-card",
+	.id = -1,
+	.dev = {
+		.platform_data = &snd_null_dai_data,
+	}
+};
+//-------------------------------------
+static struct platform_device snd_null_1 = {
+    .name = "snd-null",
+    .id = 1,
+};
+
+struct nxp_snd_dai_plat_data snd_null_dai_data_1 = {
+    .i2s_ch = 1,
+    .sample_rate = 48000,
+    .pcm_format = SNDRV_PCM_FMTBIT_S16_LE,
+};
+
+static struct platform_device snd_null_dai_1 = {
+    .name = "snd-null-card",
+    .id = 1,
+    .dev = {
+    .platform_data = &snd_null_dai_data_1 ,
+    }
+};
+
+
+//-------------------------------------
+static struct platform_device snd_null_2 = {
+	.name = "snd-null",
+	.id = 2,
+};
+
+struct nxp_snd_dai_plat_data snd_null_dai_data_2 = {
+	.i2s_ch = 2,
+	.sample_rate = 48000,
+	.pcm_format = SNDRV_PCM_FMTBIT_S16_LE,
+};
+
+static struct platform_device snd_null_dai_2 = {
+	.name = "snd-null-card",
+	.id = 2,
+	.dev = {
+		.platform_data = &snd_null_dai_data_2 ,
+	}
+};
+#endif
+
 #if defined(CONFIG_SND_CODEC_ES8316) || defined(CONFIG_SND_CODEC_ES8316_MODULE)
 #define	ES8316_I2C_BUS		(0)
 
@@ -1863,6 +1924,15 @@ void __init nxp_board_devs_register(void)
 		i2c_register_board_info(ES8316_I2C_BUS, &es8316_i2c_bdi, 1);
 		platform_device_register(&es8316_dai);
 	}
+#endif
+
+#if defined(CONFIG_SND_CODEC_NULL)
+	platform_device_register(&snd_null);
+	platform_device_register(&snd_null_dai);
+	platform_device_register(&snd_null_1);
+	platform_device_register(&snd_null_dai_1);
+	platform_device_register(&snd_null_2);
+	platform_device_register(&snd_null_dai_2);
 #endif
 
 #if defined(CONFIG_V4L2_NXP) || defined(CONFIG_V4L2_NXP_MODULE)
