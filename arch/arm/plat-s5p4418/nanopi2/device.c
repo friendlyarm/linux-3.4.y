@@ -950,6 +950,13 @@ static struct platform_device fixed_supply_dummy_device = {
 };
 #endif /* CONFIG_REGULATOR_FIXED_VOLTAGE */
 
+#if defined(CONFIG_BATTERY_SAMSUNG)
+static struct platform_device samsung_device_battery = {
+	.name		= "samsung-fake-battery",
+	.id		= -1,
+};
+#endif
+
 /*------------------------------------------------------------------------------
  * v4l2 platform device
  */
@@ -1892,6 +1899,11 @@ void __init nxp_board_devices_register(void)
 		platform_add_devices(i2c_devices, ARRAY_SIZE(i2c_devices));
 #endif
 	}
+
+#if defined(CONFIG_BATTERY_SAMSUNG)
+	printk("plat: add device fake-battery\n");
+	platform_device_register(&samsung_device_battery);
+#endif
 
 #if defined(CONFIG_SND_SPDIF_TRANSCIEVER) || defined(CONFIG_SND_SPDIF_TRANSCIEVER_MODULE)
 	printk("plat: add device spdif playback\n");
