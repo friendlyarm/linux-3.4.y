@@ -589,6 +589,7 @@ static struct {
 	{ "HD702",	&wxga_hd700, CTP_GOODIX  },
 	{ "H70",	&wxga_hd700, 0 },
 	{ "S70",	&wvga_s70,   1 },
+	{ "S701",	&wvga_s70,   CTP_GOODIX  },
 	{ "S702",	&wvga_s702,  1 },
 	{ "S70D",	&wvga_s70d,  0 },
 	{ "X710",	&wsvga_x710, CTP_ITE7260 },

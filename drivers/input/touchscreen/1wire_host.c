@@ -925,7 +925,6 @@ static int onewire_ts_probe(struct i2c_client *client,
 	if (ctp_id != CTP_NONE && ctp_id != CTP_AUTO) {
 		has_ts_data = 0;
 		timer_interval = HZ / 25;
-		goto err_nodev;
 	}
 #endif
 
@@ -943,7 +942,6 @@ static int onewire_ts_probe(struct i2c_client *client,
 	}
 
 	priv->client = client;
-	priv->irq = client->irq;
 	priv->sample_delay_ms = 12;
 	mutex_init(&priv->mutex);
 	INIT_WORK(&priv->work, onewire_ts_work_func);
@@ -954,18 +952,24 @@ static int onewire_ts_probe(struct i2c_client *client,
 		goto err_wq;
 	}
 
-	ret = request_irq(priv->irq, onewire_ts_isr,
-			IRQ_TYPE_EDGE_FALLING, client->name, priv);
-	if (ret) {
-		dev_err(&client->dev, "failed to request IRQ %d\n", priv->irq);
-		goto err_irq;
+	if (has_ts_data) {
+		/* tell user app (tscal.sh) to do calibrate */
+		total_received = 256;
+
+		priv->irq = client->irq;
+	}
+
+	if (priv->irq > 0) {
+		ret = request_irq(priv->irq, onewire_ts_isr,
+				IRQ_TYPE_EDGE_FALLING, client->name, priv);
+		if (ret) {
+			dev_err(&client->dev, "failed to request IRQ %d\n", priv->irq);
+			goto err_irq;
+		}
 	}
 
 	onewire_priv = priv;
 	dev_set_drvdata(&client->dev, priv);
-
-	/* tell user app (tscal.sh) to do calibrate */
-	total_received = 256;
 
 	bus_type = BUS_I2C;
 	dev_info(&client->dev, "found panel %d, rev %04d\n", lcd_type, firmware_ver);
