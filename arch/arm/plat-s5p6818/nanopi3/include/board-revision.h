@@ -30,6 +30,7 @@
  *  0b101 - NanoPi 3 Fire
  *  0b110 - SOM6818
  *  0b111 - NanoPi M3
+ *  0b011 - Smart6818
  */
 
 extern int board_get_revision(void);
@@ -39,21 +40,21 @@ extern int board_get_revision(void);
 #define board_is_fire()		(board_get_revision() == 0x05)
 #define board_is_som6818()	(board_get_revision() == 0x06)
 #define board_is_M3()		(board_get_revision() == 0x07)
-#define board_is_smart6818()	(0)
+#define board_is_smart6818()	(board_get_revision() == 0x03)
 
 
 static inline int board_with_emmc(void) {
 	return (board_is_nanopc() || board_is_som6818() ||
-			board_is_t3trunk());
+			board_is_t3trunk() || board_is_smart6818());
 }
 
 static inline int board_with_ap6212(void) {
-	return (board_is_nanopc() || board_is_M3());
+	return (board_is_nanopc() || board_is_M3() || board_is_smart6818());
 }
 
 static inline int board_with_es8316(void) {
 	return (board_is_nanopc() || board_is_M3() || board_is_som6818() ||
-			board_is_t3trunk());
+			board_is_t3trunk() || board_is_smart6818());
 }
 
 static inline int board_with_gmac_eth(void) {
