@@ -344,6 +344,7 @@ static void nxp_fb_copy_boot_logo(struct nxp_fb_param *par, int size)
 	struct page *page;
 
 	phys = nxp_fb_dev_get_addr(par);
+	size = PAGE_ALIGN(size);
 
 	if (phys) {
 		int reserved = memblock_is_region_reserved(phys, size);
