@@ -594,6 +594,7 @@ static struct {
 	{ "S70D",	&wvga_s70d,  0 },
 	{ "X710",	&wsvga_x710, CTP_ITE7260 },
 	{ "S430",	&wvga_s430,  CTP_HIMAX   },
+	{ "K101",	&wxga_hd101, CTP_FT5X06  },
 
 #ifndef CONFIG_ANDROID
 	{ "H43",	&hvga_h43,   0 },
