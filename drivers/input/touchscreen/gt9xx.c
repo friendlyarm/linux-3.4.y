@@ -1421,7 +1421,23 @@ static s32 gtp_init_panel(struct goodix_ts_data *ts)
     {
         GTP_ERROR("Config Group%d is INVALID CONFIG GROUP(Len: %d)! NO Config Sent! You need to check you header file CFG_GROUP section!", sensor_id, ts->gtp_cfg_len);
         ts->pnl_init_error = 1;
-        return -1;
+
+        ts->gtp_cfg_len = GTP_CONFIG_MAX_LENGTH;
+        ret = gtp_i2c_read(ts->client, config, ts->gtp_cfg_len + GTP_ADDR_LENGTH);
+        if (ret < 0)
+            return -1;
+
+        if ((ts->abs_x_max == 0) || (ts->abs_y_max == 0)) {
+            ts->abs_x_max = (config[RESOLUTION_LOC + 1] << 8) + config[RESOLUTION_LOC];
+            ts->abs_y_max = (config[RESOLUTION_LOC + 3] << 8) + config[RESOLUTION_LOC + 2];
+            ts->int_trigger_type = (config[TRIGGER_LOC]) & 0x03;
+            GTP_INFO("PANEL X_MAX: %d, Y_MAX: %d, TRIGGER: 0x%02x", ts->abs_x_max,ts->abs_y_max,ts->int_trigger_type);
+        }
+
+        if ((ts->abs_x_max == 0) || (ts->abs_y_max == 0))
+            return -1;
+        else
+            return 0;
     }
 
 #if GTP_COMPATIBLE_MODE
