@@ -89,6 +89,33 @@ static void hd700_gpio_init(void)
 
 /* NXP display configs for supported LCD */
 
+static struct nxp_lcd wxga_hd900 = {
+	.width = 1280,
+	.height = 800,
+	.p_width = 151,
+	.p_height = 94,
+	.bpp = 24,
+	.freq = 60,
+
+	.timing = {
+		.h_fp = 33,
+		.h_bp = 33,
+		.h_sw = 33,
+		.v_fp =  4,
+		.v_fpe = 1,
+		.v_bp =  4,
+		.v_bpe = 1,
+		.v_sw =  4,
+	},
+	.polarity = {
+		.rise_vclk = 0,
+		.inv_hsync = 0,
+		.inv_vsync = 1,
+		.inv_vden = 0,
+	},
+	.gpio_init = hd700_gpio_init,
+};
+
 static struct nxp_lcd wxga_hd700 = {
 	.width = 800,
 	.height = 1280,
@@ -586,6 +613,7 @@ static struct {
 	{ "HD101",	&wxga_hd101, 1 },
 	{ "HD101B",	&wxga_hd101, CTP_GOODIX  },
 	{ "HD700",	&wxga_hd700, 1 },
+	{ "HD900",	&wxga_hd900, CTP_ST1572  },
 	{ "HD702",	&wxga_hd700, CTP_GOODIX  },
 	{ "H70",	&wxga_hd700, 0 },
 	{ "S70",	&wvga_s70,   1 },

@@ -24,6 +24,7 @@ enum {
 	CTP_ITE7260,
 	CTP_GOODIX,
 	CTP_HIMAX,
+	CTP_ST1572,
 	CTP_MAX
 };
 

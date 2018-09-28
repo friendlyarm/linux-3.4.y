@@ -1031,4 +1031,25 @@ config TOUCHSCREEN_HIMAX_SINGLE
 
 	  If unsure, say N.
 
+config TOUCHSCREEN_ST1572
+	tristate "Sitronix 1572 touchscreen support"
+	depends on I2C
+	help
+	  Say Y here if you have a Sitronix 1572 touchscreen and your
+	  board-specific setup code includes that in its table
+	  of I2C devices.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called st1572.
+
+config TOUCHSCREEN_ST1572_SINGLE
+	bool "Disable MULTI-Touch Mode"
+	depends on TOUCHSCREEN_ST1572
+	default n
+	help
+	  Say Y here to disable multi-touch mode for Debian, Ubuntu, QT.
+
+	  If unsure, say N.
 endif
