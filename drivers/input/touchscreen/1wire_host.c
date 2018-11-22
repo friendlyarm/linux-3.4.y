@@ -45,6 +45,7 @@
 #include <linux/gpio.h>
 #include <linux/pwm.h>
 #include <linux/i2c.h>
+#include <linux/reboot.h>
 
 #include <linux/platform_data/touchscreen-one-wire.h>
 #include <linux/platform_data/ctouch.h>
@@ -73,6 +74,7 @@ static int bus_type = -1;
 static struct onewire_ts_priv *onewire_priv;
 static struct ts_onewire_platform_data *pdata;
 static struct pwm_device *pwm;
+static struct notifier_block reboot_nb;
 
 #ifdef CONFIG_AUTO_REPORT_1WIRE_INPUT
 static int invert_x, invert_y, swap_xy;
@@ -1032,6 +1034,19 @@ static struct i2c_driver onewire_ts_driver = {
 
 //---------------------------------------------------------
 
+static int onewire_reboot_handler(struct notifier_block *this,
+		unsigned long mode, void *cmd)
+{
+	backlight_req = 0x80U;
+	if (bus_type == BUS_I2C)
+		queue_work(onewire_priv->queue, &onewire_priv->work);
+
+	wait_event_interruptible_timeout(bl_waitq, bl_ready, HZ / 10);
+	pr_info("onewire: backlight off\n");
+
+	return NOTIFY_DONE;
+}
+
 static int __init onewire_dev_init(void)
 {
 	int ret;
@@ -1054,6 +1069,13 @@ static int __init onewire_dev_init(void)
 	if (ret)
 		goto fail_drv;
 
+	reboot_nb.notifier_call = onewire_reboot_handler;
+	reboot_nb.priority = 192;
+	if (register_reboot_notifier(&reboot_nb)) {
+		printk("onewire: failed to register reboot notifier\n");
+		reboot_nb.notifier_call = NULL;
+	}
+
 	return 0;
 
 fail_drv:
@@ -1066,6 +1088,9 @@ fail_ts:
 
 static void __exit onewire_dev_exit(void)
 {
+	if (reboot_nb.notifier_call)
+		unregister_reboot_notifier(&reboot_nb);
+
 	i2c_del_driver(&onewire_ts_driver);
 
 	remove_proc_entry("driver/one-wire-info", NULL);
