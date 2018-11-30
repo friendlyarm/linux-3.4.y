@@ -548,6 +548,19 @@ static const struct option_blacklist_info telit_le920_blacklist = {
 };
 
 static const struct usb_device_id option_ids[] = {
+#if 1 //Added by Quectel
+	{ USB_DEVICE(0x05C6, 0x9090) }, /* Quectel UC15 */
+	{ USB_DEVICE(0x05C6, 0x9003) }, /* Quectel UC20 */
+	{ USB_DEVICE(0x05C6, 0x9215) }, /* Quectel EC20 */
+	{ USB_DEVICE(0x2C7C, 0x0125) }, /* Quectel EC25/EC20 R2.0 */
+	{ USB_DEVICE(0x2C7C, 0x0121) }, /* Quectel EC21 */
+	{ USB_DEVICE(0x2C7C, 0x0191) }, /* Quectel EG91 */
+	{ USB_DEVICE(0x2C7C, 0x0195) }, /* Quectel EG95 */
+	{ USB_DEVICE(0x2C7C, 0x0306) }, /* Quectel EG06/EP06/EM06 */
+	{ USB_DEVICE(0x2C7C, 0x0296) }, /* Quectel BG96 */
+	{ USB_DEVICE(0x2C7C, 0x0435) }, /* Quectel AG35 */
+#endif
+
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_COLT) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA) },
 	{ USB_DEVICE(OPTION_VENDOR_ID, OPTION_PRODUCT_RICOLA_LIGHT) },
@@ -1813,6 +1826,23 @@ static int option_probe(struct usb_serial *serial,
 			const struct usb_device_id *id)
 {
 	struct usb_wwan_intf_private *data;
+
+#if 1 //Added by Quectel
+	/* Interface 4 can be used as USB Network device */
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x05C6)
+			&& serial->dev->descriptor.idProduct == cpu_to_le16(0x9003)
+			&& serial->interface->cur_altsetting->desc.bInterfaceNumber >= 4)
+		return -ENODEV;
+
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x05C6)
+			&& serial->dev->descriptor.idProduct == cpu_to_le16(0x9215)
+			&& serial->interface->cur_altsetting->desc.bInterfaceNumber >= 4)
+		return -ENODEV;
+
+	if (serial->dev->descriptor.idVendor == cpu_to_le16(0x2C7C)
+			&& serial->interface->cur_altsetting->desc.bInterfaceNumber >= 4)
+		return -ENODEV;
+#endif
 
 	/* D-Link DWM 652 still exposes CD-Rom emulation interface in modem mode */
 	if (serial->dev->descriptor.idVendor == DLINK_VENDOR_ID &&
