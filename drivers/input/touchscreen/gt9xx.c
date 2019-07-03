@@ -2521,6 +2521,13 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	ret = gtp_i2c_test(client);
 	if (ret < 0) {
+		if (client->addr == 0x5d) {
+			/* HACK: try another slave address for HD101B */
+			client->addr = 0x14;
+			ret = gtp_i2c_test(client);
+		}
+	}
+	if (ret < 0) {
 		GTP_ERROR("I2C communication ERROR!");
 		gtp_free_io_port(ts);
 		i2c_set_clientdata(client, NULL);
