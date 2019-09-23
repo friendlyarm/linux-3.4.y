@@ -304,6 +304,33 @@ static struct nxp_lcd qvga_w35 = {
 };
 #endif
 
+static struct nxp_lcd wvga_w500 = {
+	.width = 800,
+	.height = 480,
+	.p_width = 108,
+	.p_height = 64,
+	.bpp = 24,
+	.freq = 60,
+
+	.timing = {
+		.h_fp = 80,
+		.h_bp = 36,
+		.h_sw = 10,
+		.v_fp = 22,
+		.v_fpe = 1,
+		.v_bp = 15,
+		.v_bpe = 1,
+		.v_sw = 8,
+	},
+	.polarity = {
+		.rise_vclk = 0,
+		.inv_hsync = 1,
+		.inv_vsync = 1,
+		.inv_vden = 0,
+	},
+	.gpio_init = s70_gpio_init,
+};
+
 static struct nxp_lcd wvga_w50 = {
 	.width= 800,
 	.height = 480,
@@ -623,6 +650,7 @@ static struct {
 	{ "X710",	&wsvga_x710, CTP_ITE7260 },
 	{ "S430",	&wvga_s430,  CTP_HIMAX   },
 	{ "K101",	&wxga_hd101, CTP_FT5X06  },
+	{ "W500",	&wvga_w500,  CTP_GOODIX  },
 
 #ifndef CONFIG_ANDROID
 	{ "H43",	&hvga_h43,   0 },
