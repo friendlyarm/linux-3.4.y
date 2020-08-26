@@ -104,7 +104,7 @@ static int snd_null_hw_params(struct snd_pcm_substream *substream,
 
 	pr_debug("%s\n", __func__);
 
-    ret = snd_soc_dai_set_sysclk(cpu_dai, 0, sample_rate, SND_SOC_CLOCK_IN);
+    ret = snd_soc_dai_set_sysclk(cpu_dai, 0, sample_rate, SND_SOC_CLOCK_OUT);
 	if (0 > ret)
 		return ret;
 /*

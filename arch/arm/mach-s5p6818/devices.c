@@ -549,6 +549,8 @@ static unsigned long i2s_ext_mclk_set_clock(unsigned long clk, int ch)
 				nxp_soc_gpio_set_io_dir(PAD_GPIO_D + 13, 0);
 				break;
 			case 1:
+				nxp_soc_gpio_set_io_func(PAD_GPIO_A + 28, NX_GPIO_PADFUNC_0);
+				nxp_soc_gpio_set_io_dir(PAD_GPIO_A + 28, 0);
 			case 2:
 				nxp_soc_gpio_set_io_func(PAD_GPIO_A + 28, NX_GPIO_PADFUNC_0);
 				nxp_soc_gpio_set_io_dir(PAD_GPIO_A + 28, 0);

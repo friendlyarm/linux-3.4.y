@@ -38,9 +38,9 @@
 
 #include "nxp-i2s.h"
 
-/*
+
 #define pr_debug				printk
-*/
+
 
 #if defined(CONFIG_SND_NXP_DFS)
 #define SND_NXP_DFS_PLLNO		5 // virtual no
