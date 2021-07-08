@@ -1,7 +1,6 @@
 obj-$(CONFIG_VIDEO_NXP_OUT) += nxp-out.o nxp-mlc.o
 obj-$(CONFIG_NXP_OUT_RESOLUTION_CONVERTER) += nxp-resc.o sync-preset.o
 obj-$(CONFIG_NXP_OUT_HDMI) += hdmi-new/
-obj-$(CONFIG_NXP_HDMI_CEC) += hdmi-new/cec/nxp-hdmi-cec.o
 obj-$(CONFIG_NXP_OUT_TVOUT) += nxp-tvout.o
 #obj-$(CONFIG_NXP_OUT_HDMI) += hdmi/
 #obj-$(CONFIG_NXP_OUT_HDMI) += hdmi-emul/
