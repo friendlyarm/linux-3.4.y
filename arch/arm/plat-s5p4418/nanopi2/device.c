@@ -1467,6 +1467,51 @@ static struct spi_board_info spi_plat_board[] __initdata = {
 };
 #endif
 
+#define CFG_SPI2_CS     (PAD_GPIO_C + 10)
+
+static void mylcd_cs(u32 chipselect)
+{
+
+#if (CFG_SPI2_CS_GPIO_MODE)
+    nxp_soc_gpio_set_out_value( CFG_SPI2_CS , chipselect);
+#else
+	;
+#endif
+}
+
+struct pl022_config_chip mylcd_info = {
+        /* available POLLING_TRANSFER, INTERRUPT_TRANSFER, DMA_TRANSFER */
+        .com_mode = CFG_SPI2_COM_MODE,
+        .iface = SSP_INTERFACE_MOTOROLA_SPI,
+        /* We can only act as master but SSP_SLAVE is possible in theory */
+        .hierarchy = SSP_MASTER,
+        /* 0 = drive TX even as slave, 1 = do not drive TX as slave */
+        .slave_tx_disable = 1,
+        .rx_lev_trig = SSP_RX_4_OR_MORE_ELEM,
+        .tx_lev_trig = SSP_TX_4_OR_MORE_EMPTY_LOC,
+        .ctrl_len = SSP_BITS_8,
+        .wait_state = SSP_MWIRE_WAIT_ZERO,
+        .duplex = SSP_MICROWIRE_CHANNEL_FULL_DUPLEX,
+  /*
+         * This is where you insert a call to a function to enable CS
+         * (usually GPIO) for a certain chip.
+         */
+        .cs_control = mylcd_cs,
+        .clkdelay = SSP_FEEDBACK_CLK_DELAY_1T,
+};
+
+static struct spi_board_info spi2_plat_board[] __initdata = {
+        [0] = {
+                .modalias        = "my_spilcd",    /* fixup */
+                .max_speed_hz    = 50000000,     /* max spi clock (SCK) speed in HZ */
+                .bus_num         = 2,           /* Note> set bus num, must be smaller than ARRAY_SIZE(spi_plat_device) */
+                .chip_select     = 0,           /* Note> set chip select num, must be smaller than spi cs_num */
+                .controller_data = &mylcd_info,
+                .mode            = SPI_MODE_0,
+        },
+};
+
+
 /*------------------------------------------------------------------------------
  * DW MMC board config
  */
@@ -1942,6 +1987,19 @@ void __init nxp_board_devices_register(void)
 	spi_register_board_info(spi_plat_board, ARRAY_SIZE(spi_plat_board));
 	printk("plat: register spidev\n");
 #endif
+
+      nxp_soc_gpio_set_io_func(PAD_GPIO_C + 9, NX_GPIO_PADFUNC_2);
+#if (CFG_SPI2_CS_GPIO_MODE)
+      nxp_soc_gpio_set_io_func(PAD_GPIO_C + 10, NX_GPIO_PADFUNC_1);
+      nxp_soc_gpio_set_io_dir( CFG_SPI2_CS, 1);
+#else
+      nxp_soc_gpio_set_io_func(PAD_GPIO_C + 10, NX_GPIO_PADFUNC_2);
+#endif
+      nxp_soc_gpio_set_io_func(PAD_GPIO_C + 11, NX_GPIO_PADFUNC_2);
+      nxp_soc_gpio_set_io_func(PAD_GPIO_C + 12, NX_GPIO_PADFUNC_2);
+      spi_register_board_info(spi2_plat_board, ARRAY_SIZE(spi2_plat_board));
+      printk("plat: register mylcd\n");
+
 
 #if defined(CONFIG_TOUCHSCREEN_GSLX680)
 	printk("plat: add touch(gslX680) device\n");

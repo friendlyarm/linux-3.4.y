@@ -200,19 +200,20 @@
 /*------------------------------------------------------------------------------
  * 	SPI
  */
-#define CFG_SPI0_CLK							(10000000*5)		// spiclk = CFG_SPI0_CLK / 2
-#define CFG_SPI1_CLK							10000000
-#define CFG_SPI2_CLK							10000000
+#define CFG_SPI0_CLK							(10000000*10)		// spiclk = CFG_SPI0_CLK / 2
+#define CFG_SPI1_CLK							(10000000*10)
+#define CFG_SPI2_CLK							(10000000*10)
 
-#define CFG_SPI0_COM_MODE						0	/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
-#define CFG_SPI1_COM_MODE						1	/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
-#define CFG_SPI2_COM_MODE						1	/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
+#define CFG_SPI0_COM_MODE						2	/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
+#define CFG_SPI1_COM_MODE						2	/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
+#define CFG_SPI2_COM_MODE						2	/* available 0: INTERRUPT_TRANSFER, 1: POLLING_TRANSFER, 2: DMA_TRANSFER */
 
 #define CFG_SPI0_CS_GPIO_MODE					1	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
 #define CFG_SPI1_CS_GPIO_MODE					1	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
-#define CFG_SPI2_CS_GPIO_MODE					0	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
+#define CFG_SPI2_CS_GPIO_MODE					1	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
 
 #define CFG_SPI0_CS								(PAD_GPIO_C + 30)	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
+#define CFG_SPI2_CS								(PAD_GPIO_C + 10)	/* 0 FSS CONTROL, 1: CS CONTRO GPIO MODE */
 
 /*------------------------------------------------------------------------------
  *  MPEGTSIF

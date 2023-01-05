@@ -117,6 +117,12 @@ struct pl08x_lli {
 	u32 cctl;
 };
 
+struct ssp_monitor {
+	int index;
+	struct timer_list timer;
+	spinlock_t ssp_lock;
+};
+
 /**
  * struct pl08x_driver_data - the local state holder for the PL08x
  * @slave: slave engine for this instance
@@ -146,6 +152,7 @@ struct pl08x_driver_data {
 	u8 lli_buses;
 	u8 mem_buses;
 	spinlock_t lock;
+	struct ssp_monitor  ssp_monitor[3];
 };
 
 /*
@@ -2099,10 +2106,57 @@ static void pl08x_tasklet(unsigned long data)
 	}
 }
 
+
+static void pl08x_ssp_timer(unsigned long data)
+{
+	struct ssp_monitor *monitor = (struct ssp_monitor *)data;
+	struct pl08x_driver_data *pl08x = container_of(monitor,
+	        struct pl08x_driver_data, ssp_monitor[monitor->index]);
+	unsigned long flags, ch_id, val;
+	struct pl08x_phy_chan *phychan = &pl08x->phy_chans[0];
+	int i, num_req;
+
+	ch_id = DMA_PERIPHERAL_ID_SSP0_RX + 2 * monitor->index;
+
+	spin_lock_irqsave(&monitor->ssp_lock, flags);
+	for(i = 0; i < pl08x->vd->channels; i++) {
+		if(phychan->serving->cd->min_signal == ch_id)
+			break;
+		phychan++;
+	}
+	num_req = readl(phychan->base + PL080_CH_CONTROL) & 0xFFF;
+	val = 1 << ch_id;
+	for(i = 0; i < DIV_ROUND_UP(num_req, 4); i++)
+		writel(val, pl08x->base + PL080_SOFT_BREQ);
+	spin_unlock_irqrestore(&monitor->ssp_lock, flags);
+}
+
+void prevent_abnormal_ssp_task(struct pl08x_driver_data *pl08x, u16 ssp_tc)
+{
+	int i = 0;
+
+	for(i = 0; i < 3; i++) {
+		int bit = DMA_PERIPHERAL_ID_SSP0_TX + 2 * i;
+		int spi_tx = 0, spi_rx = 0;
+
+		spi_tx = ssp_tc & (1 << bit);
+		spi_rx = ssp_tc & (1 << (bit + 1));
+
+		if(spi_tx && !spi_rx) {
+			mod_timer(&pl08x->ssp_monitor[i].timer,jiffies + msecs_to_jiffies(8));
+		}
+
+		if(!spi_tx && spi_rx) {
+			del_timer(&pl08x->ssp_monitor[i].timer);
+		}
+	}
+}
+
 static irqreturn_t pl08x_irq(int irq, void *dev)
 {
 	struct pl08x_driver_data *pl08x = dev;
 	u32 mask = 0, err, tc, i;
+	u16 ssp_tc_record_bit = 0;
 
 	/* check & clear - ERR & TC interrupts */
 	err = readl(pl08x->base + PL080_ERR_STATUS);
@@ -2131,6 +2185,11 @@ static irqreturn_t pl08x_irq(int irq, void *dev)
 				continue;
 			}
 
+			/* Only DMAC0 contains SPI. */
+			if(pl08x->slave.chancnt == 16){
+				ssp_tc_record_bit |= (1 << plchan->cd->min_signal);
+			}
+
 			/* Schedule tasklet on this channel */
 #if !defined(CONFIG_AMBA_PL08X_USE_ISR)
 			tasklet_schedule(&plchan->tasklet);
@@ -2140,6 +2199,8 @@ static irqreturn_t pl08x_irq(int irq, void *dev)
 			mask |= (1 << i);
 		}
 	}
+	if(ssp_tc_record_bit)
+		prevent_abnormal_ssp_task(pl08x, ssp_tc_record_bit);
 
 	return mask ? IRQ_HANDLED : IRQ_NONE;
 }
@@ -2387,6 +2448,13 @@ static int pl08x_probe(struct amba_device *adev, const struct amba_id *id)
 	pm_runtime_irq_safe(&adev->dev);	/* add by jhkim, pm_runtime bug, when call pm_runtime_get_sync */
 	pm_runtime_set_active(&adev->dev);
 	pm_runtime_enable(&adev->dev);
+
+	for(i = 0; i < 3; i++){
+		pl08x->ssp_monitor[i].index = i;
+		spin_lock_init(&pl08x->ssp_monitor[i].ssp_lock);
+		setup_timer(&pl08x->ssp_monitor[i].timer,
+                            pl08x_ssp_timer, (unsigned long)&pl08x->ssp_monitor[i]);
+	}
 
 	/* Initialize memcpy engine */
 	dma_cap_set(DMA_MEMCPY, pl08x->memcpy.cap_mask);
